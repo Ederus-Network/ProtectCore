@@ -17,14 +17,24 @@ El comando base es:
 
 ---
 
-## 🔍 1. Auditoría en Juego (`/po lookup`)
+## 🔍 1. Auditoría en Juego (`/po lookup` o `/po l`)
 
-Permite realizar búsquedas históricas filtradas de acciones directamente en el chat del juego o por consola.
+Permite realizar búsquedas históricas filtradas de acciones directamente en el chat del juego o por consola, con una interfaz y presentación idéntica a **CoreProtect**.
 
 ### Sintaxis General
 ```text
 /po lookup [u:<jugador>] [t:<tiempo>] [r:<radio>] [a:<acción>] [i:<bloques>] [e:<excluidos>] [p:<página>]
+# o mediante su alias rápido:
+/po l [parámetros]
 ```
+
+### Paginación Rápida con Memoria
+ProtectCore recuerda tu última búsqueda por jugador. Para cambiar de página no necesitas reescribir todos los filtros:
+```text
+/po l 2
+/po lookup 3
+```
+*Salta directamente a la página indicada manteniendo intactos todos los filtros anteriores.*
 
 ### Parámetros Disponibles
 
@@ -36,7 +46,22 @@ Permite realizar búsquedas históricas filtradas de acciones directamente en el
 | `action:<tipo>` | `a:<acción>` | Tipo específico de evento a buscar. | `a:chat`, `a:cmd`, `a:block_break`, `a:all` |
 | `include:<items>`| `i:<material>`| Filtra sólo por ciertos bloques/ítems separados por comas. | `i:diamond_ore,ancient_debris` |
 | `exclude:<items>`| `e:<material>`| Omite bloques/ítems comunes del reporte. | `e:stone,dirt,cobblestone` |
-| `page:<número>` | `p:<página>` | Página del resultado (también navegable con ◀ y ▶). | `p:2`, `p:5` |
+| `page:<número>` | `p:<página>` o `<número>` | Página del resultado (también navegable con ◀ y ▶). | `p:2`, `/po l 2` |
+
+---
+
+### 🎨 Formato Visual Idéntico a CoreProtect
+
+ProtectCore replica con fidelidad el estándar visual de CoreProtect:
+- **Tiempos Relativos Dinámicos:** Muestra la antigüedad exacta del evento (`0.05/h ago`, `1.50/h ago`, `2.30/d ago`, `12.50/s ago`). Al pasar el cursor por encima del tiempo, muestra la fecha y hora completa en formato `yyyy-MM-dd HH:mm:ss`.
+- **Paleta de Colores Oficial:** Nombres de usuario y materiales en Dark Aqua (`&3`), verbos y conectores en Blanco (`&f`), y símbolos de acción distintivos:
+  - `+` en verde (`&a+`): colocación de bloques, depósitos en contenedores.
+  - `-` en rojo (`&c-`): rotura de bloques, retiros de contenedores, asesinatos.
+  - `-` en gris (`&7-`): interacciones o clics.
+  - `>` en amarillo (`&e>`): transferencias o movimientos.
+- **Acciones Revertidas (Tachadas):** Las acciones que ya han sido revertidas con `/po rollback` aparecen con formato tachado (`strikethrough`), permitiendo identificar al instante si el daño ya fue solucionado.
+- **Coordenadas y Teletransporte con 1 Clic:** En la segunda línea de cada registro se detallan las coordenadas exactas `^ (x/y/z/mundo)` con indicador de acción `(a:action)`. Al hacer clic en las coordenadas te teletransportas automáticamente a la ubicación del suceso.
+- **Transacciones de Contenedores con Cantidades:** Visualiza la cantidad exacta de ítems movidos (`x64 oak_planks`, `x1 diamond`) y al pasar el cursor sobre el ítem verás su nombre personalizado, encantamientos y lore.
 
 ---
 
@@ -49,14 +74,14 @@ ProtectCore registra el historial conversacional y administrativo en tiempo real
   /po lookup u:Jugador a:chat t:6h
   ```
   *(Alias válidos: `a:chat`, `a:msg`, `a:message`, `a:player_message`)*  
-  *Salida:* `[12:34:56] 💬 chat Jugador: Hola a todos!`
+  *Salida:* `0.10/h ago - Steve: Hola a todos!`
 
 - **Búsqueda de comandos ejecutados:**
   ```text
   /po lookup u:Jugador a:cmd t:1d
   ```
   *(Alias válidos: `a:cmd`, `a:command`, `a:player_command`)*  
-  *Salida:* `[14:20:10] ⚡ cmd Jugador: /pay Pedro 5000`
+  *Salida:* `0.15/h ago - Steve: /pay Pedro 5000`
 
 - **Ver absolutamente todo (sin exclusiones):**
   ```text
@@ -86,7 +111,7 @@ Los jugadores de Bedrock acceden a través de Geyser/Floodgate con el prefijo de
 | `BLOCK_PLACE` | `place` | Bloques colocados |
 | `CONTAINER_ADD` | `add` | Ítems depositados en cofres, shulkers o barriles |
 | `CONTAINER_TAKE` | `take` | Ítems retirados de cofres o contenedores |
-| `INTERACT` | `interact` | Apertura de puertas, palancas, cofres, botones |
+| `INTERACT` | `interact`, `click` | Apertura de puertas, palancas, cofres, botones |
 | `ITEM_PICKUP` | `pickup` | Ítems recogidos del suelo |
 | `ITEM_DROP` | `drop` | Ítems arrojados al suelo |
 | `BUCKET_EMPTY` | `bucket` | Vaciado de cubos (agua, lava) |
@@ -100,7 +125,7 @@ Los jugadores de Bedrock acceden a través de Geyser/Floodgate con el prefijo de
 
 ## 🔎 2. Modo Inspector en Mano (`/po inspect` o `/po i`)
 
-Activa o desactiva la herramienta de inspección interactiva para el Staff.
+Activa o desactiva la herramienta de inspección interactiva sobre el terreno.
 
 ```text
 /po inspect
@@ -108,11 +133,14 @@ Activa o desactiva la herramienta de inspección interactiva para el Staff.
 /po i
 ```
 
-### Cómo funciona:
-1. Escribe `/po inspect`. Recibirás el mensaje `Inspector activado`.
-2. **Clic Izquierdo en un bloque:** Muestra quién colocó o rompió ese bloque y cuándo.
-3. **Clic Derecho en un bloque/contenedor:** Muestra quién interactuó con el bloque o qué ítems se metieron/sacaron del cofre.
-4. Escribe nuevamente `/po inspect` para desactivarlo.
+### Mecánicas de Clic:
+1. **Clic Izquierdo en un bloque:** Muestra el historial de quién colocó o rompió ese bloque exacto.
+   - Encabezado: `----- ProtectCore ----- (x/y/z)`
+2. **Clic Derecho en un Contenedor (Cofre, Shulker, Barril):** Muestra exclusivamente las transacciones de ítems depositados y retirados.
+   - Encabezado dedicado: `----- Container Transactions ----- (x/y/z)`
+   - Formato de ítems: `x64 oak_planks`, `x1 netherite_sword` (con tooltip interactivo de encantamientos y lore al pasar el cursor).
+3. **Clic Derecho en Bloque Sólido:** Inspecciona automáticamente el bloque de aire adyacente contra la cara seleccionada (`block.getRelative(face)`). De esta forma se detectan bloques rotos o colocados sobre esa superficie sin necesidad de romper la pared o suelo.
+4. Escribe nuevamente `/po i` para desactivar el modo inspector.
 
 ---
 

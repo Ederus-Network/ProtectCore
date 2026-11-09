@@ -1,33 +1,9 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.google.gson.Gson
- *  com.google.gson.JsonElement
- *  com.google.gson.JsonObject
- *  net.kyori.adventure.text.Component
- *  net.kyori.adventure.text.TextComponent
- *  net.kyori.adventure.text.event.ClickEvent
- *  net.kyori.adventure.text.event.HoverEvent
- *  net.kyori.adventure.text.event.HoverEventSource
- *  net.kyori.adventure.text.format.NamedTextColor
- *  net.kyori.adventure.text.format.TextColor
- *  net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
- *  org.bukkit.Bukkit
- *  org.bukkit.World
- *  org.bukkit.command.Command
- *  org.bukkit.command.CommandExecutor
- *  org.bukkit.command.CommandSender
- *  org.bukkit.command.TabCompleter
- */
 package com.lucidaps.commands;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.lucidaps.ProtectCore;
-import com.lucidaps.commands.PcTpCommand;
-import com.lucidaps.commands.SubCommand;
 import com.lucidaps.commands.subcommands.EditorSubCommand;
 import com.lucidaps.commands.subcommands.InspectSubCommand;
 import com.lucidaps.commands.subcommands.LookupSubCommand;
@@ -42,6 +18,7 @@ import com.lucidaps.db.DbPurger;
 import com.lucidaps.utilities.Lang;
 import com.lucidaps.utilities.LogFormatting;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,9 +31,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.event.HoverEventSource;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -65,252 +41,317 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
-public class PoCommand
-implements CommandExecutor,
-TabCompleter {
+public class PoCommand implements CommandExecutor, TabCompleter {
     private final ProtectCore plugin;
     private final DatabaseMariadb databaseMariadb;
-    private final Map<String, SubCommand> subCommands = new LinkedHashMap<String, SubCommand>();
-    private static String teleportHoverMessage;
-    private static final UUID ZERO_UUID;
+    private final Map<String, SubCommand> subCommands = new LinkedHashMap<>();
+    private static String teleportHoverMessage = "Click to teleport.";
+    private static final UUID ZERO_UUID = new UUID(0L, 0L);
+    private static final LegacyComponentSerializer AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
 
     public PoCommand(ProtectCore protectCore, DatabaseMariadb databaseMariadb, DbPurger dbPurger) {
         this.plugin = protectCore;
         this.databaseMariadb = databaseMariadb;
-        this.registerSubCommand(new LookupSubCommand(protectCore, databaseMariadb));
+
+        LookupSubCommand lookupSubCommand = new LookupSubCommand(protectCore, databaseMariadb);
+        this.registerSubCommand(lookupSubCommand);
+        this.subCommands.put("l", lookupSubCommand);
+
+        InspectSubCommand inspectSubCommand = new InspectSubCommand(protectCore, databaseMariadb);
+        this.registerSubCommand(inspectSubCommand);
+        this.subCommands.put("i", inspectSubCommand);
+
         this.registerSubCommand(new NearSubCommand(protectCore, databaseMariadb));
         this.registerSubCommand(new EditorSubCommand(protectCore, databaseMariadb));
         this.registerSubCommand(new RollbackSubCommand(protectCore, databaseMariadb));
         this.registerSubCommand(new ReloadSubCommand(protectCore));
-        InspectSubCommand inspectSubCommand = new InspectSubCommand(protectCore, databaseMariadb);
-        this.registerSubCommand(inspectSubCommand);
-        this.subCommands.put("i", inspectSubCommand);
         this.registerSubCommand(new PurgeSubCommand(protectCore, dbPurger));
         this.registerSubCommand(new StatusSubCommand(protectCore, databaseMariadb, dbPurger));
+
         teleportHoverMessage = protectCore.getLang().get("messages.teleportHover", Map.of());
     }
 
     private void registerSubCommand(SubCommand subCommand) {
-        this.subCommands.put(subCommand.getName().toLowerCase(), subCommand);
+        this.subCommands.put(subCommand.getName().toLowerCase(Locale.ROOT), subCommand);
     }
 
-    public boolean onCommand(CommandSender commandSender, Command command, String string, String[] stringArray) {
-        if (!commandSender.hasPermission("protectcore.commands")) {
-            commandSender.sendMessage(this.plugin.getLang().get("messages.noPermission", Map.of()));
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("protectcore.commands")) {
+            sender.sendMessage(this.plugin.getLang().get("messages.noPermission", Map.of()));
             return true;
         }
-        if (stringArray.length < 1) {
-            String string2 = String.join((CharSequence)"|", this.subCommands.keySet());
-            commandSender.sendMessage(this.plugin.getLang().get("messages.usageGeneric", Map.of("subcommands", string2)));
+        if (args.length < 1) {
+            String available = String.join("|", this.subCommands.keySet());
+            sender.sendMessage(this.plugin.getLang().get("messages.usageGeneric", Map.of("subcommands", available)));
             return true;
         }
-        SubCommand subCommand = this.subCommands.get(stringArray[0].toLowerCase());
+        SubCommand subCommand = this.subCommands.get(args[0].toLowerCase(Locale.ROOT));
         if (subCommand == null) {
-            String string3 = String.join((CharSequence)", ", this.subCommands.keySet());
-            commandSender.sendMessage(this.plugin.getLang().get("messages.unknownSubcommand", Map.of("subcommands", string3)));
+            String available = String.join(", ", this.subCommands.keySet());
+            sender.sendMessage(this.plugin.getLang().get("messages.unknownSubcommand", Map.of("subcommands", available)));
             return true;
         }
-        return subCommand.execute(commandSender, command, string, stringArray);
+        return subCommand.execute(sender, command, label, args);
     }
 
-    public List<String> onTabComplete(CommandSender commandSender, Command command, String string2, String[] stringArray) {
-        if (stringArray.length == 1) {
-            return this.subCommands.keySet().stream().filter(string -> string.startsWith(stringArray[0].toLowerCase())).collect(Collectors.toList());
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return this.subCommands.keySet().stream()
+                .filter(name -> name.startsWith(args[0].toLowerCase(Locale.ROOT)))
+                .collect(Collectors.toList());
         }
-        SubCommand subCommand = this.subCommands.get(stringArray[0].toLowerCase());
+        SubCommand subCommand = this.subCommands.get(args[0].toLowerCase(Locale.ROOT));
         if (subCommand != null) {
-            return subCommand.tabComplete(commandSender, command, string2, stringArray);
+            return subCommand.tabComplete(sender, command, alias, args);
         }
         return Collections.emptyList();
     }
 
-    private static Component applyMetadataHover(Component component, ActionLog actionLog) {
+    public static Component applyMetadataHover(Component component, ActionLog actionLog) {
         if (actionLog.getMetadata() != null && !actionLog.getMetadata().isEmpty()) {
-            String string = PoCommand.formatMetadata(actionLog.getMetadata());
-            TextComponent textComponent = LegacyComponentSerializer.legacyAmpersand().deserialize(string);
-            return component.hoverEvent((HoverEventSource)HoverEvent.showText((Component)textComponent));
+            String metaStr = formatMetadata(actionLog.getMetadata());
+            if (metaStr != null && !metaStr.isBlank()) {
+                TextComponent hoverText = AMPERSAND.deserialize(metaStr);
+                return component.hoverEvent(HoverEvent.showText(hoverText));
+            }
         }
         return component;
     }
 
-    public static Component formatLogComponent(ActionLog actionLog, String string, boolean bl) {
-        LogFormatting.FormattedLogParts formattedLogParts;
-        String[] stringArray;
-        String string2 = PoCommand.formatTimeAgo(actionLog.getTimestamp());
-        String string3 = actionLog.getDetails();
-        String string4 = string3 == null ? "" : string3.toLowerCase(Locale.ROOT);
-        boolean bl2 = ZERO_UUID.equals(actionLog.getPlayerUUID());
-        if (bl2) {
-            if (actionLog.getAction().equalsIgnoreCase("ENTITY_DEATH") && string4.contains(" by ")) {
-                stringArray = string4.split(" by ");
-                if (stringArray.length == 2) {
-                    String string5 = stringArray[1].trim();
-                    String string6 = stringArray[0].trim();
-                    String string7 = "&c-";
-                    String string8 = "killed";
-                    String string9 = "&7" + string2 + " ago " + string7 + " &d" + string5 + " &f" + string8 + " &d" + string6 + "&f.";
-                    Component component = bl ? PoCommand.buildFinalComponent(string9, actionLog) : LegacyComponentSerializer.legacyAmpersand().deserialize(string9);
-                    return PoCommand.applyMetadataHover(component, actionLog);
+    public static Component formatLogComponent(ActionLog actionLog, String username, boolean includeLocation) {
+        String timeAgo = formatTimeAgo(actionLog.getTimestamp());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String exactTime = sdf.format(actionLog.getTimestamp());
+
+        Component timeComp = Component.text(timeAgo, NamedTextColor.GRAY)
+            .hoverEvent(HoverEvent.showText(Component.text(exactTime, NamedTextColor.GRAY)));
+        Component sepComp = Component.text(" - ", NamedTextColor.WHITE);
+
+        String details = actionLog.getDetails();
+        String detailsLower = details == null ? "" : details.toLowerCase(Locale.ROOT);
+        String action = actionLog.getAction() != null ? actionLog.getAction().toUpperCase(Locale.ROOT) : "DEFAULT";
+
+        String effectiveUser = username != null && !username.isBlank() ? username : "unknown";
+
+        Component line1;
+
+        if ("PLAYER_MESSAGE".equals(action)) {
+            String msg = details != null ? details : "";
+            Component playerComp = Component.text(effectiveUser + ": ", NamedTextColor.DARK_AQUA);
+            Component msgComp = Component.text(msg, NamedTextColor.WHITE);
+            line1 = timeComp.append(sepComp).append(playerComp).append(msgComp);
+        } else if ("PLAYER_COMMAND".equals(action)) {
+            String cmd = details != null ? details : "";
+            Component playerComp = Component.text(effectiveUser + ": ", NamedTextColor.DARK_AQUA);
+            Component cmdComp = Component.text(cmd, NamedTextColor.YELLOW);
+            line1 = timeComp.append(sepComp).append(playerComp).append(cmdComp);
+        } else {
+            LogFormatting.LogFormatter formatter = LogFormatting.LogFormatter.getFormatter(action);
+            LogFormatting.FormattedLogParts parts = formatter.format(actionLog, detailsLower, timeAgo, includeLocation);
+
+            if (parts.overrideComponent() != null) {
+                line1 = timeComp.append(sepComp).append(parts.overrideComponent());
+            } else {
+                String symbol = parts.symbol();
+                String verb = parts.actionVerb();
+                String detail = parts.detailSuffix();
+                String user = parts.usernameOverride() != null ? parts.usernameOverride() : effectiveUser;
+
+                String rowText;
+                if (parts.detailContainsVerb()) {
+                    rowText = symbol + " &3" + user + " " + detail + "&f.";
+                } else {
+                    rowText = symbol + " &3" + user + " &f" + verb + " " + detail + "&f.";
                 }
-            } else if (actionLog.getAction().equalsIgnoreCase("HOPPER_TRANSFER")) {
-                String[] stringArray2 = string4.split(" ");
-                String string10 = "&e>";
-                String string11 = "transfer";
-                String string12 = stringArray2.length >= 3 ? "&d" + stringArray2[0] + " &f" + string11 + " &d" + stringArray2[1] + " " + stringArray2[2] : (stringArray2.length >= 2 ? "&d" + stringArray2[0] + " &f" + string11 + " &d" + stringArray2[1] : "&d" + string4);
-                String string13 = "&7" + string2 + " ago " + string10 + " " + string12 + "&f.";
-                Component component = bl ? PoCommand.buildFinalComponent(string13, actionLog) : LegacyComponentSerializer.legacyAmpersand().deserialize(string13);
-                return PoCommand.applyMetadataHover(component, actionLog);
+                line1 = timeComp.append(sepComp).append(AMPERSAND.deserialize(rowText));
             }
-        } else if (actionLog.getAction().equalsIgnoreCase("BLOCK_BURN")) {
-            String string14 = string4.replace("block ", "").replace(" is burning", "").replace(" burned", "").trim();
-            String string15 = "&c-";
-            String string16 = "burned";
-            String string17 = "&7" + string2 + " ago " + string15 + " &dfire &f" + string16 + " &d" + string14 + "&f.";
-            Component component = bl ? PoCommand.buildFinalComponent(string17, actionLog) : LegacyComponentSerializer.legacyAmpersand().deserialize(string17);
-            return PoCommand.applyMetadataHover(component, actionLog);
         }
-        if ((formattedLogParts = (stringArray = LogFormatting.LogFormatter.getFormatter(actionLog.getAction())).format(actionLog, string4, string2, bl)).overrideComponent() != null) {
-            return PoCommand.applyMetadataHover(formattedLogParts.overrideComponent(), actionLog);
+
+        line1 = applyMetadataHover(line1, actionLog);
+
+        if (actionLog.isRolledBack()) {
+            line1 = line1.decoration(TextDecoration.STRIKETHROUGH, true);
         }
-        String string18 = formattedLogParts.symbol();
-        String string19 = formattedLogParts.actionVerb();
-        String string20 = formattedLogParts.detailSuffix();
-        String string21 = formattedLogParts.usernameOverride() != null ? formattedLogParts.usernameOverride() : string;
-        String string22 = string21 == null || string21.isBlank() ? "unknown" : string21;
-        String string23 = formattedLogParts.detailContainsVerb() ? "&7" + string2 + " ago " + string18 + " &d" + string22 + " " + string20 + "&f." : "&7" + string2 + " ago " + string18 + " &d" + string22 + " &f" + string19 + " " + string20 + "&f.";
-        Component component = bl ? PoCommand.buildFinalComponent(string23, actionLog) : LegacyComponentSerializer.legacyAmpersand().deserialize(string23);
-        return PoCommand.applyMetadataHover(component, actionLog);
+
+        if (includeLocation) {
+            return line1.append(Component.newline()).append(buildLocationLine(actionLog));
+        }
+        return line1;
     }
 
-    public static Component formatLogComponent(ActionLog actionLog, String string) {
-        return PoCommand.formatLogComponent(actionLog, string, true);
+    public static Component formatLogComponent(ActionLog actionLog, String username) {
+        return formatLogComponent(actionLog, username, true);
     }
 
     public static void updateTeleportHover(Lang lang) {
         teleportHoverMessage = lang.get("messages.teleportHover", Map.of());
     }
 
-    private static Component buildFinalComponent(String string, ActionLog actionLog) {
-        Object object;
-        TextComponent textComponent = LegacyComponentSerializer.legacyAmpersand().deserialize(string);
-        String string2 = "(x" + actionLog.getX() + "/y" + actionLog.getY() + "/z" + actionLog.getZ() + "/" + actionLog.getWorld() + ")";
-        World world2 = Bukkit.getWorld((String)actionLog.getWorld());
-        if (world2 == null && ((Optional)(object = Bukkit.getWorlds().stream().filter(world -> world.getName().equalsIgnoreCase(actionLog.getWorld()) || world.getKey().toString().equalsIgnoreCase(actionLog.getWorld())).findFirst())).isPresent()) {
-            world2 = (World)((Optional)object).get();
-        }
-        object = world2 != null ? world2.getKey().toString() : actionLog.getWorld();
-        String string3 = UUID.randomUUID().toString();
-        PcTpCommand.registerToken(string3);
-        String string4 = "/pc_tp " + string3 + " " + (String)object + " " + actionLog.getX() + " " + actionLog.getY() + " " + actionLog.getZ();
-        Component component = ((TextComponent)((TextComponent)Component.text((String)string2).color((TextColor)NamedTextColor.GRAY)).hoverEvent((HoverEventSource)HoverEvent.showText((Component)LegacyComponentSerializer.legacyAmpersand().deserialize(teleportHoverMessage != null ? teleportHoverMessage : "Click to teleport")))).clickEvent(ClickEvent.runCommand((String)string4));
-        String string5 = "         &7^ ";
-        Component component2 = LegacyComponentSerializer.legacyAmpersand().deserialize(string5).append(component);
-        return textComponent.append((Component)Component.newline()).append(component2);
+    public static String getActionTag(String action) {
+        if (action == null) return "block";
+        return switch (action.toUpperCase(Locale.ROOT)) {
+            case "BLOCK_PLACE", "BLOCK_BREAK", "BLOCK_BURN", "BLOCK_EXPLODE", "BLOCK_FORM", "LEAVES_DECAY", "LIQUID_FLOW", "STRUCTURE_GROW" -> "block";
+            case "CONTAINER_ADD", "CONTAINER_TAKE", "CONTAINER_SNAPSHOT", "HOPPER_TRANSFER" -> "container";
+            case "INTERACT" -> "click";
+            case "ITEM_PICKUP", "ITEM_DROP" -> "item";
+            case "ENTITY_DEATH" -> "kill";
+            case "ENTITY_PLACE", "ENTITY_EXPLODE" -> "entity";
+            case "PLAYER_MESSAGE" -> "chat";
+            case "PLAYER_COMMAND" -> "command";
+            default -> action.toLowerCase(Locale.ROOT).replace('_', '-');
+        };
     }
 
-    private static String formatMetadata(String string) {
+    private static Component buildLocationLine(ActionLog actionLog) {
+        String coords = "(x" + actionLog.getX() + "/y" + actionLog.getY() + "/z" + actionLog.getZ() + "/" + actionLog.getWorld() + ")";
+        World world = Bukkit.getWorld(actionLog.getWorld());
+        if (world == null) {
+            Optional<World> match = Bukkit.getWorlds().stream()
+                .filter(w -> w.getName().equalsIgnoreCase(actionLog.getWorld()) || w.getKey().toString().equalsIgnoreCase(actionLog.getWorld()))
+                .findFirst();
+            if (match.isPresent()) {
+                world = match.get();
+            }
+        }
+        String worldKey = world != null ? world.getKey().toString() : actionLog.getWorld();
+        String token = UUID.randomUUID().toString();
+        PcTpCommand.registerToken(token);
+        String tpCmd = "/pc_tp " + token + " " + worldKey + " " + actionLog.getX() + " " + actionLog.getY() + " " + actionLog.getZ();
+
+        String hoverMsg = (teleportHoverMessage != null && !teleportHoverMessage.isBlank()) ? teleportHoverMessage : "Click to teleport";
+
+        Component coordComp = Component.text(coords, NamedTextColor.GRAY)
+            .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize(hoverMsg)))
+            .clickEvent(ClickEvent.runCommand(tpCmd));
+
+        String actionTag = getActionTag(actionLog.getAction());
+        Component actionComp = Component.text(" (a:" + actionTag + ")", NamedTextColor.GRAY)
+            .decoration(TextDecoration.ITALIC, true);
+
+        return Component.text("         ^ ", NamedTextColor.GRAY)
+            .append(coordComp)
+            .append(actionComp);
+    }
+
+    public static String formatMetadata(String string) {
         try {
-            JsonObject jsonObject = (JsonObject)new Gson().fromJson(string, JsonObject.class);
+            JsonObject jsonObject = new Gson().fromJson(string, JsonObject.class);
             if (jsonObject.has("item") && jsonObject.get("item").isJsonObject()) {
                 jsonObject = jsonObject.getAsJsonObject("item");
             }
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             if (jsonObject.has("displayName")) {
-                stringBuilder.append("\u00a75Name: \u00a7f").append(jsonObject.get("displayName").getAsString()).append('\n');
+                sb.append("§dName: §f").append(jsonObject.get("displayName").getAsString()).append('\n');
             }
             if (jsonObject.has("enchantments")) {
-                stringBuilder.append("\u00a75Enchantments:\n");
-                jsonObject.getAsJsonObject("enchantments").entrySet().forEach(entry -> stringBuilder.append("  \u00a77- ").append((String)entry.getKey()).append(": \u00a7f").append(((JsonElement)entry.getValue()).getAsInt()).append('\n'));
+                sb.append("§dEnchantments:\n");
+                jsonObject.getAsJsonObject("enchantments").entrySet().forEach(entry ->
+                    sb.append("  §7- ").append(entry.getKey()).append(": §f").append(entry.getValue().getAsInt()).append('\n')
+                );
             }
             if (jsonObject.has("lore")) {
-                stringBuilder.append("\u00a75Lore:\n");
-                jsonObject.getAsJsonArray("lore").forEach(jsonElement -> stringBuilder.append("  \u00a77- ").append(jsonElement.getAsString()).append('\n'));
+                sb.append("§dLore:\n");
+                jsonObject.getAsJsonArray("lore").forEach(element ->
+                    sb.append("  §7- ").append(element.getAsString()).append('\n')
+                );
             }
-            if (stringBuilder.length() > 0 && stringBuilder.charAt(stringBuilder.length() - 1) == '\n') {
-                stringBuilder.setLength(stringBuilder.length() - 1);
+            if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
+                sb.setLength(sb.length() - 1);
             }
-            return stringBuilder.toString();
-        }
-        catch (Exception exception) {
+            return sb.toString();
+        } catch (Exception e) {
             return string;
         }
     }
 
-    private static String formatTimeAgo(Timestamp timestamp) {
-        long l = System.currentTimeMillis() - timestamp.getTime();
-        long l2 = l / 1000L;
-        if (l2 < 0L) {
-            l2 = 0L;
+    public static String formatTimeAgo(Timestamp timestamp) {
+        long diff = System.currentTimeMillis() - timestamp.getTime();
+        long seconds = Math.max(0, diff / 1000L);
+        if (seconds >= 86400L) {
+            return String.format(Locale.ROOT, "%.2f/d ago", (double) seconds / 86400.0);
         }
-        if (l2 >= 86400L) {
-            return String.format("%.2fd", (double)l2 / 86400.0);
+        if (seconds >= 3600L) {
+            return String.format(Locale.ROOT, "%.2f/h ago", (double) seconds / 3600.0);
         }
-        if (l2 >= 3600L) {
-            return String.format("%.2fh", (double)l2 / 3600.0);
+        if (seconds >= 60L) {
+            return String.format(Locale.ROOT, "%.2f/m ago", (double) seconds / 60.0);
         }
-        if (l2 >= 60L) {
-            return String.format("%.2fm", (double)l2 / 60.0);
-        }
-        return String.format("%.2fs", (double)l / 1000.0);
+        return String.format(Locale.ROOT, "%.2f/s ago", (double) seconds);
     }
 
-    public static Component formatFooterComponent(String string, String string2, int n, int n2) {
-        return PoCommand.formatFooterComponent(string, string2, n, n2, "");
+    public static Component formatFooterComponent(String user, String time, int page, int totalPages) {
+        return formatFooterComponent(user, time, page, totalPages, "");
     }
 
-    public static Component formatFooterComponent(String string, String string2, int n, int n2, String string3) {
-        TextComponent textComponent;
-        LegacyComponentSerializer legacyComponentSerializer = LegacyComponentSerializer.legacyAmpersand();
-        TextComponent textComponent2 = Component.empty();
-        String string4 = string3 != null && !string3.isBlank() ? " " + string3.trim() : "";
-        String string5 = "/po lookup" + (String)(string != null && !string.isBlank() ? " user:" + string : "") + " time:" + string2 + string4 + " page:";
-        if (n > 1) {
-            textComponent = ((TextComponent)Component.text((String)"\u25c0").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + (n - 1))));
-            textComponent2 = textComponent2.append((Component)textComponent).append((Component)Component.space());
+    public static Component formatFooterComponent(String user, String time, int page, int totalPages, String extraParams) {
+        TextComponent.Builder builder = Component.text();
+        builder.append(AMPERSAND.deserialize("&f-----\n"));
+
+        String extra = (extraParams != null && !extraParams.isBlank()) ? " " + extraParams.trim() : "";
+        String cmdBase = "/po lookup" + (user != null && !user.isBlank() ? " user:" + user : "") + " time:" + time + extra + " page:";
+
+        if (page > 1) {
+            Component prev = Component.text("◀", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Page " + (page - 1))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + (page - 1)));
+            builder.append(prev).append(Component.space());
         }
-        textComponent = legacyComponentSerializer.deserialize("&dPage &f" + n + "/" + n2);
-        textComponent2 = textComponent2.append((Component)textComponent);
-        if (n < n2) {
-            textComponent2 = textComponent2.append((Component)Component.space());
-            Component component = ((TextComponent)Component.text((String)"\u25b6").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + (n + 1))));
-            textComponent2 = textComponent2.append(component);
+
+        builder.append(AMPERSAND.deserialize("&fPage &3" + page + "&f/&3" + totalPages));
+
+        if (page < totalPages) {
+            builder.append(Component.space());
+            Component next = Component.text("▶", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Page " + (page + 1))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + (page + 1)));
+            builder.append(next);
         }
-        return textComponent2;
+        return builder.build();
     }
 
-    public static Component formatFooterComponentWindowed(String string, String string2, int n, int n2, int n3, boolean bl, boolean bl2, String string3) {
-        Component component;
-        LegacyComponentSerializer legacyComponentSerializer = LegacyComponentSerializer.legacyAmpersand();
-        TextComponent textComponent = Component.empty();
-        String string4 = string3 != null && !string3.isBlank() ? " " + string3.trim() : "";
-        String string5 = "/po lookup" + (String)(string != null && !string.isBlank() ? " user:" + string : "") + " time:" + string2 + string4 + " page:";
-        if (bl) {
-            int n4 = Math.max(1, n2 - 1);
-            component = ((TextComponent)((TextComponent)Component.text((String)"\u23ee").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + n4)))).hoverEvent((HoverEventSource)HoverEvent.showText((Component)legacyComponentSerializer.deserialize("&7Jump to pages " + Math.max(1, n2 - 10) + "\u2013" + (n2 - 1))));
-            textComponent = textComponent.append(component).append((Component)Component.space());
-        }
-        if (n > n2) {
-            Component component2 = ((TextComponent)Component.text((String)"\u25c0").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + (n - 1))));
-            textComponent = textComponent.append(component2).append((Component)Component.space());
-        }
-        TextComponent textComponent2 = legacyComponentSerializer.deserialize("&dPage &f" + n + " &7(" + n2 + "\u2013" + n3 + ")");
-        textComponent = textComponent.append((Component)textComponent2);
-        if (n < n3) {
-            textComponent = textComponent.append((Component)Component.space());
-            component = ((TextComponent)Component.text((String)"\u25b6").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + (n + 1))));
-            textComponent = textComponent.append(component);
-        }
-        if (bl2) {
-            textComponent = textComponent.append((Component)Component.space());
-            int n5 = n3 + 1;
-            Component component3 = ((TextComponent)((TextComponent)Component.text((String)"\u23ed").color((TextColor)NamedTextColor.DARK_AQUA)).clickEvent(ClickEvent.runCommand((String)(string5 + n5)))).hoverEvent((HoverEventSource)HoverEvent.showText((Component)legacyComponentSerializer.deserialize("&7Jump to pages " + (n3 + 1) + "\u2013" + (n3 + 10))));
-            textComponent = textComponent.append(component3);
-        }
-        return textComponent;
-    }
+    public static Component formatFooterComponentWindowed(String user, String time, int page, int windowStart, int windowEnd, boolean hasPrevWindow, boolean hasNextWindow, String extraParams) {
+        TextComponent.Builder builder = Component.text();
+        builder.append(AMPERSAND.deserialize("&f-----\n"));
 
-    static {
-        ZERO_UUID = new UUID(0L, 0L);
+        String extra = (extraParams != null && !extraParams.isBlank()) ? " " + extraParams.trim() : "";
+        String cmdBase = "/po lookup" + (user != null && !user.isBlank() ? " user:" + user : "") + " time:" + time + extra + " page:";
+
+        if (hasPrevWindow) {
+            int jumpTarget = Math.max(1, windowStart - 1);
+            Component jumpPrev = Component.text("⏮", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Jump to pages " + Math.max(1, windowStart - 10) + "–" + (windowStart - 1))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + jumpTarget));
+            builder.append(jumpPrev).append(Component.space());
+        }
+
+        if (page > windowStart) {
+            Component prev = Component.text("◀", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Page " + (page - 1))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + (page - 1)));
+            builder.append(prev).append(Component.space());
+        }
+
+        builder.append(AMPERSAND.deserialize("&fPage &3" + page + " &7(" + windowStart + "–" + windowEnd + ")"));
+
+        if (page < windowEnd) {
+            builder.append(Component.space());
+            Component next = Component.text("▶", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Page " + (page + 1))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + (page + 1)));
+            builder.append(next);
+        }
+
+        if (hasNextWindow) {
+            builder.append(Component.space());
+            int jumpTarget = windowEnd + 1;
+            Component jumpNext = Component.text("⏭", NamedTextColor.DARK_AQUA)
+                .hoverEvent(HoverEvent.showText(AMPERSAND.deserialize("&7Jump to pages " + (windowEnd + 1) + "–" + (windowEnd + 10))))
+                .clickEvent(ClickEvent.runCommand(cmdBase + jumpTarget));
+            builder.append(jumpNext);
+        }
+
+        return builder.build();
     }
 }
-
