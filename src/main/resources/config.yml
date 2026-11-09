@@ -1,0 +1,341 @@
+# --------------------------------------------------------------------------- #
+#  ProtectCore – main configuration                                           #
+# --------------------------------------------------------------------------- #
+
+config-version: 2
+
+# Time-zone used for all timestamps that are *shown* to users (not DB).
+timezone: "Europe/Athens"
+
+# How dates are formatted in the browser editor (en-GB = DD/MM/YYYY)
+dateLocale: "en-GB"
+
+# Check for updates on startup and notify console/admins
+checkForUpdates: true
+
+# ---------------------------------------------------------------------------
+# Embedded web editor
+# ---------------------------------------------------------------------------
+# Listener, browser-facing URL, session, and request limits.
+editor:
+  enabled: true
+  # Fresh installs listen only on this machine. Use 0.0.0.0 only when the
+  # editor must be reachable remotely and a firewall/reverse proxy protects it.
+  bindAddress: "127.0.0.1"
+  port: 9123
+  # Address sent to players. This may be an HTTPS reverse-proxy URL.
+  publicBaseUrl: "https://editor.ederus.com"
+  # Each /po editor command creates an independent reusable link that expires
+  # this many minutes after it is generated. Using the link does not extend it.
+  tokenTtlMinutes: 60
+  maxRequestThreads: 8
+  maxQueuedRequests: 64
+  maxPageSize: 100
+
+# ---------------------------------------------------------------------------
+# Database (MariaDB)
+# ---------------------------------------------------------------------------
+database:
+  # Basic connection
+  type: mariadb              # <- do not change
+  host: "localhost"
+  port: 3306
+  name: "testdb"
+  user: "testuser"
+  password: "password"
+  useSSL: false              # set true if your DB enforces SSL
+
+  # -------------------------------------------------------------------------
+  # Batching
+  # What it does:
+  #   Caps how many log rows are written per DB batch. Larger = fewer round-trips
+  #   and higher throughput; but bigger transactions and more memory per batch.
+  # Recommended:
+  #   2000–10000. Start at 5000. Raise if CPU/IO headroom is good and you see
+  #   many batches/sec; lower if you hit lock waits or long commits.
+  # When to change:
+  #   • Raise if inserts are the bottleneck and DB is healthy.
+  #   • Lower if you see timeouts/locks or big GC spikes.
+  batchSize: 5000 # max rows written in a single batch
+
+  # Protects the server during a database outage. New logs are rejected with
+  # a rate-limited warning once this many pending rows are buffered.
+  maxQueuedActions: 200000
+
+  # Transient connection failures use exponential retry delays between these
+  # bounds (20 ticks = 1 second, 600 ticks = 30 seconds).
+  retryBaseDelayTicks: 20
+  retryMaxDelayTicks: 600
+
+  # -------------------------------------------------------------------------
+  # Automatic maintenance
+  # What it does:
+  #   Triggers OPTIMIZE TABLE when table fragmentation passes a threshold,
+  #   but only if the table is at least a minimum size.
+  # Recommended:
+  #   optimizeThresholdPercent: 15–35 (20 default is fine for most).
+  #   optimizeMinSizeBytes: keep small tables out of maintenance churn.
+  #   Human size cheat-sheet (set in BYTES):
+  #     256MB = 268435456
+  #     512MB = 536870912
+  #       1GB = 1073741824
+  # When to change:
+  #   • Raise optimizeMinSizeBytes (e.g., 1GB–2GB) if OPTIMIZE runs too often.
+  #   • Raise optimizeThresholdPercent if maintenance collides with peak hours.
+  maintenance:
+    optimizeThresholdPercent: 20.0 # run OPTIMIZE if fragmentation > X%
+    optimizeMinSizeBytes: 536870912   # 512 MB (set in BYTES; see cheat-sheet)
+    optimizeAfterPurge: false
+
+  # Automatic retention is disabled until explicitly enabled.
+  retention:
+    enabled: false
+    keepDays: 90
+    intervalHours: 24
+    batchSize: 200
+
+  # -------------------------------------------------------------------------
+  # HikariCP connection pool
+  # What they do (all times are milliseconds):
+  #   maximumPoolSize: max concurrent DB connections from this plugin.
+  #   minimumIdle: warm idle connections (typ. 10–30% of max).
+  #   maxLifetime: proactively retire connections before DB kills them
+  #                (set to ~60–80% of DB wait_timeout; 10–30m is safe if unsure).
+  #   idleTimeout: how long an idle connection sits before closing (5–10m common).
+  #   connectionTimeout: how long callers wait for a connection before failing.
+  # Recommended:
+  #   Keep defaults unless you see pool exhaustions or DB pressure.
+  #   Raise maximumPoolSize only if threads frequently time out waiting.
+  pool:
+    maximumPoolSize: 20      # Change if pool frequently exhausts (and DB can handle more).
+    minimumIdle: 4           # ~10–30% of maximumPoolSize.
+    maxLifetime: 600000      # 10 min (adjust to be < your DB wait_timeout)
+    idleTimeout: 300000      # 5 min
+    connectionTimeout: 30000 # 30 s
+
+# --------------------------------------------------------------------------- #
+#  Logging toggles                                                            #
+# --------------------------------------------------------------------------- #
+logPlayerActions: true   # master switch – all player events
+logWorldActions:  true   # master switch – all system/world events
+
+# --------------------------------------------------------------------------- #
+#  World filters                                                              #
+#  If 'whitelist' has any entries, ONLY those worlds are active.              #
+#  If 'whitelist' is empty, all worlds are active EXCEPT those in 'blacklist'.#
+#  Use Bukkit world names (e.g., world, world_nether, world_the_end).         #
+# --------------------------------------------------------------------------- #
+# (Leave them empty to keep current “works everywhere” behavior.)
+worlds:
+  whitelist: []     # e.g. ["world", "build"]
+  blacklist: []     # e.g. ["minigames", "testworld"]
+
+# ---------------------------------------------------------------------------
+# Fine-grained per-event controls
+# ---------------------------------------------------------------------------
+loggedActions:
+  player:
+    BLOCK_PLACE: true
+    ENTITY_PLACE: true
+    BLOCK_BREAK: true
+    ITEM_PICKUP: true
+    ITEM_DROP: true
+    BUCKET_EMPTY: true
+    INTERACT: true
+    PLAYER_COMMAND: true
+    PLAYER_MESSAGE: true
+    CONTAINER_ADD: true
+    CONTAINER_TAKE: true
+  world:
+    BLOCK_BREAK: true
+    BLOCK_EXPLODE: true
+    ENTITY_EXPLODE: true
+    BLOCK_BURN: true
+    STRUCTURE_GROW: true
+    LIGHTNING_STRIKE: true
+    PORTAL_CREATE: true
+    LEAVES_DECAY: true
+    BLOCK_FORM: true
+    # Recommended to leave on false to save disk space. Rarely useful.
+    PISTON_EXTEND: false
+    PISTON_RETRACT: false
+    ENTITY_DEATH: true
+    # If false, rollbacks for liquids might leave some behind (space saver).
+    LIQUID_FLOW: false
+    HOPPER_TRANSFER: true
+
+# ---------------------------------------------------------------------------
+# Command & message logging rules
+# ---------------------------------------------------------------------------
+logging:
+  commands:
+    # Root command names (with or without leading slash; case-insensitive)
+    # These will NOT be logged as command actions.
+    blacklist: []
+
+  # Arguments are replaced with [REDACTED] before these commands are queued
+  # for database storage. Matching is case-insensitive and supports subcommands.
+  sensitiveCommands:
+    - login
+    - register
+    - changepassword
+    - l
+
+  messages:
+    # These commands will be treated as “messages” and logged under PLAYER_MESSAGE
+    # (instead of PLAYER_COMMAND) — useful for /me, /msg, etc.
+    includeCommands:
+      - me
+      - msg
+      - cmi msg
+      - cmi reply
+      - tell
+      - w
+      - r
+
+# Usernames on this list won't show up for the PLAYER_COMMAND & PLAYER_MESSAGE actions
+ignore:
+  usernames:
+    - Owner
+    - AdminAdmin
+    - AFK_Account
+
+# ---------------------------------------------------------------------------
+# Rollback behavior
+# ---------------------------------------------------------------------------
+rollback:
+  maxRadius: 200
+  maxDays: 50
+  # Per loaded chunk. Runtime validation clamps this to 1-500.
+  workPerTick: 250
+  global:
+    # Runtime validation clamps this to 1-4 (1000 operations/tick by default).
+    parallelChunks: 4
+    unloadAfter: true
+    confirmWindowSeconds: 15   # how long the confirm window lasts
+  debug:
+    showRecentBySourceToPlayers: false
+
+# ---------------------------------------------------------------------------
+# Nearby / Lookup defaults
+# ---------------------------------------------------------------------------
+near:
+  defaultRadius: 7
+  maxRadius:     10
+
+lookup:
+  defaultRadius: 10
+  pageSize: 4
+
+# ---------------------------------------------------------------------------
+# WorldEdit integration
+# ---------------------------------------------------------------------------
+worldedit:
+  enabled: true        # Track WorldEdit changes (for rollback and history).
+  reportLogs:
+    enabled: false     # If false, hide WorldEdit entries from lookup/near output.
+
+# --------------------------------------------------------------------------- #
+#  Embedded web editor – theme                                                #
+# --------------------------------------------------------------------------- #
+editorTheme:
+  accentColorLight:   "#6a0dad"
+  accentColorDark:    "#d450ff"
+  headerColor:        "#d450ff"
+  filterLabelColor:   "#b9b9b9"
+  tabBgColor:         "#024849"
+  tabTextColor:       "#06d7c6"
+  tabActiveBgColor:   "#027872"
+  tabActiveTextColor: "#ffffff"
+  entryLabelColor:    "#d450ff"
+
+# ---------------------------------------------------------------------------
+# Plugin messages — customize freely
+# ---------------------------------------------------------------------------
+messages:
+  noPermission:      "&7&l[&6&li&7&l] &cYou do not have permission to use this command."
+  unknownSubcommand: "&7&l[&6&li&7&l] &cUnknown subcommand. Available: {subcommands}"
+  usageGeneric:      "&7&l[&6&li&7&l] &6Usage: /po <{subcommands}> [parameters]"
+  onlyPlayer:        "&7&l[&6&li&7&l] &cOnly players can use this command."
+  teleportHover:     "&7Click to teleport."
+
+  rollback:
+    usage:            "&7&l[&6&li&7&l] &6&nUsage: /po rollback time:<period> radius:<blocks> [user:<name>] [action:<type>] [item:<material>]"
+    invalidTime:      "&7&l[&6&li&7&l] &cInvalid time format. Use a valid number with a unit (e.g., 10m, 30s, 2h)."
+    daysExceeded:     "&7&l[&6&li&7&l] &cTime period exceeds the maximum allowed ({max} days)."
+    invalidRadius:    "&7&l[&6&li&7&l] &cInvalid radius. It must be an integer."
+    radiusExceeded:   "&7&l[&6&li&7&l] &cRadius exceeds the maximum allowed ({max})."
+    started:          "&dProtectCore &f– Rollback started on \"{world}\"."
+    errorRestore:     "&7&l[&6&li&7&l] &cError restoring container at {location}."
+    foundChunks:      "&dProtectCore &f– Found {count} chunks to modify."
+    progress:         "&dProtectCore &f– Modified {current}/{total} chunks."
+    completedHeader:  "&f-----"
+    completedSummary: "&dProtectCore &f– Rollback completed for \"{world}\"."
+    completedDetails: "&dProtectCore &f– Time range: {time}. Radius: {radius} blocks. Modified {items} items, {blocks} blocks, {chunks} chunks. Time taken: {timetaken}s."
+    invalidPlayer:    "&7&l[&6&li&7&l] &cPlayer &e'{player}' &cnot found or has never played."
+    collectingLogs:   "&dProtectCore &f– Collecting logs for {time} within radius {radius}…"
+    errorInitiating:  "&7&l[&6&li&7&l] &cCould not start the rollback. Check the server log."
+    globalConfirm:    "&c&lWARNING:&r &cThis will run a &lGLOBAL&r &crollback for the last {time} across the entire world! &7Re-run the same command within &f{seconds}&7s to confirm."
+
+  lookup:
+    specifyUser:   "&7&l[&6&li&7&l] &7You must specify a user using user:<name>."
+    invalidTime:   "&7&l[&6&li&7&l] &cInvalid time period: {period}."
+    invalidPage:   "&7&l[&6&li&7&l] &cInvalid page number: {page}. There are only {total} pages."
+    header:        "&f----- &dProtectCore &f|  &dLookup Results &f-----\n"
+    noLogs:        "&7&l[&6&li&7&l] &cNo logs found for user {user} in the last {period}."
+    footer:        "&dPage {current}/{total}."
+
+  near:
+    noLogs:       "&7&l[&6&li&7&l] &cNo logs found within {radius} blocks of your location."
+    invalidPage:  "&7&l[&6&li&7&l] &cInvalid page number. There are only {total} pages."
+    header:       "&f----- &dProtectCore Near &f-----\n"
+    pageInfo:     "&dPage &f{current}/{total}"
+
+  inspect:
+    modeEnabled:     "&dProtectCore &f– Inspector mode &aenabled."
+    modeDisabled:    "&dProtectCore &f– Inspector mode &cdisabled."
+    invalidNumber:   "&7&l[&6&li&7&l] &cInvalid number format in parameters."
+    noLogs:          "&7&l[&6&li&7&l] &cNo logs found for block at ({x},{y},{z})."
+    noLogsForMode:   "&7&l[&6&li&7&l] &cNo logs found for this inspector query."
+    invalidPage:     "&7&l[&6&li&7&l] &cInvalid page number. There are only {total} pages."
+    header:          "&f----- &dInspector Logs at ({x},{y},{z}) &f-----\n"
+    pageInfo:        "&dPage &f{current}/{total}"
+    prevArrow:       "◀"
+    nextArrow:       "▶"
+
+  editor:
+    invalidTime:     "&7&l[&6&li&7&l] &cInvalid time period: {time}"
+    playerNotFound:  "&7&l[&6&li&7&l] &cPlayer &e'{player}' &cnot found or has never played."
+    clickPrompt:     "&7[&dProtectCore&7] &bClick here to open the editor!"
+    consoleOpen:     "&7[&dProtectCore&7] &dOpen the editor at: {url}"
+
+  reload:
+    success: "&aProtectCore configuration and web server reloaded successfully."
+    error:   "&cAn error occurred during reload. Check console."
+
+# ---------------------------------------------------------------------------
+# Debug toggles (spammy!)
+# ---------------------------------------------------------------------------
+debug:
+  enabled: false        # flip this to start/stop all debug
+  ratePerSec: 30       # per-key cap to avoid flooding
+
+  # granular toggles
+  db:
+    batch: true        # batch insert timings/size
+    queue: true        # queue depth snapshots
+    queries: false     # print parameterized query info
+  we:
+    capture: true      # WE setBlock capture sampling & drain stats
+    drain: true        # per-tick drain progress
+  rollback:
+    manifest: true     # chunk manifest size + top hits
+    perChunk: true     # per-chunk log counts
+    phases: true       # phase transitions + timings
+    frames: true       # item-frame finder & setItem ops
+    containers: false  # chest snapshot restore details
+    water: true        # piggybacks your waterlogged dbg
+    leftovers: true
+    trace: true
+    targets: true
+
