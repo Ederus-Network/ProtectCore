@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProtectCore Docs | Ederus Network</title>
+  <meta name="description" content="Guía Oficial y Documentación de ProtectCore (/po) - Sistema de Auditoría, Inspección y Reversión de Ederus Network.">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0e131f;
+      --bg-card: rgba(18, 24, 38, 0.7);
+      --bg-card-hover: rgba(26, 34, 54, 0.85);
+      --bg-glass: rgba(14, 19, 31, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(56, 189, 248, 0.4);
+      --primary: #38bdf8;
+      --primary-rgb: 56, 189, 248;
+      --primary-dark: #0284c7;
+      --secondary: #818cf8;
+      --secondary-rgb: 129, 140, 248;
+      --accent: #c084fc;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --sidebar-width: 290px;
+      --header-height: 72px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      color-scheme: dark;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 30%, rgba(129, 140, 248, 0.08), transparent),
+        radial-gradient(ellipse 50% 50% at 0% 70%, rgba(192, 132, 252, 0.07), transparent);
+      background-attachment: fixed;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Top Navigation */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.35));
+    }
+
+    .brand-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      -webkit-text-fill-color: initial;
+    }
+
+    .brand-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 0.45rem 1rem 0.45rem 2.2rem;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-family: inherit;
+      width: 220px;
+      transition: all 0.25s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      width: 280px;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.8rem;
+      width: 14px;
+      height: 14px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 0.5rem 0.85rem;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-editor {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2));
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: var(--primary);
+    }
+
+    .btn-editor:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(129, 140, 248, 0.3));
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    /* Layout Wrapper */
+    .layout {
+      display: flex;
+      margin-top: var(--header-height);
+      min-height: calc(100vh - var(--header-height));
+      max-width: 1600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      position: sticky;
+      top: var(--header-height);
+      height: calc(100vh - var(--header-height));
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      border-right: 1px solid var(--border-subtle);
+      background: rgba(7, 9, 14, 0.5);
+    }
+
+    .nav-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .nav-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      padding: 0 0.75rem 0.5rem;
+    }
+
+    .nav-list {
+      list-style: none;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.5rem 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .nav-item a:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .nav-item a.active {
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+      font-weight: 600;
+    }
+
+    .nav-item a.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 15%;
+      bottom: 15%;
+      width: 3px;
+      background: var(--primary);
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      color: var(--text-dim);
+    }
+
+    /* Main Content Area */
+    .content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 3.5rem;
+      max-width: 1050px;
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      padding: 2rem 2.5rem;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(14, 19, 31, 0.85) 0%, rgba(20, 28, 48, 0.6) 100%);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 3.5rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.25rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    .hero-badge-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.2rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .hero-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .hero-card-cmd {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .hero-card-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Content Typography & Sections */
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: calc(var(--header-height) + 1.5rem);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: #ffffff;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-top: 1.75rem;
+      margin-bottom: 0.75rem;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    /* Callout Alerts */
+    .callout {
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 0.85rem;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      background: var(--bg-card);
+      border-left: 4px solid;
+    }
+
+    .callout-note {
+      border-left-color: var(--primary);
+      background: rgba(56, 189, 248, 0.06);
+    }
+    .callout-note .callout-icon { color: var(--primary); }
+
+    .callout-tip {
+      border-left-color: var(--success);
+      background: rgba(16, 185, 129, 0.06);
+    }
+    .callout-tip .callout-icon { color: var(--success); }
+
+    .callout-warn {
+      border-left-color: var(--warning);
+      background: rgba(245, 158, 11, 0.06);
+    }
+    .callout-warn .callout-icon { color: var(--warning); }
+
+    .callout-danger {
+      border-left-color: var(--danger);
+      background: rgba(239, 68, 68, 0.06);
+    }
+    .callout-danger .callout-icon { color: var(--danger); }
+
+    .callout-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .callout-body {
+      flex: 1;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+      color: var(--text-main);
+    }
+
+    /* Code Blocks */
+    .code-block {
+      position: relative;
+      background: #090d16;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin: 1rem 0 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .code-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .code-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .btn-copy.copied {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: #e2e8f0;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #38bdf8;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 1.25rem 0 2rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .badge-primary { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-danger  { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-purple  { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+
+    /* Minecraft Simulator Box */
+    .mc-sim {
+      background: #090c12;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: #ffffff;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.7);
+    }
+
+    .mc-sim-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mc-header { color: #55FFFF; font-weight: bold; }
+    .mc-aqua   { color: #00AAAA; font-weight: bold; }
+    .mc-white  { color: #FFFFFF; }
+    .mc-gray   { color: #AAAAAA; }
+    .mc-darkgray { color: #555555; }
+    .mc-green  { color: #55FF55; font-weight: bold; }
+    .mc-red    { color: #FF5555; font-weight: bold; }
+    .mc-yellow { color: #FFFF55; font-weight: bold; }
+    .mc-strike { text-decoration: line-through; opacity: 0.6; }
+    .mc-coord  { color: #AAAAAA; cursor: pointer; text-decoration: underline dotted; }
+    .mc-coord:hover { color: #55FFFF; }
+
+    /* Interactive Command Builder Widget */
+    .generator-card {
+      background: linear-gradient(135deg, rgba(14, 19, 31, 0.95), rgba(20, 27, 45, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      margin: 2rem 0;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .generator-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .generator-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .generator-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .field-select, .field-input {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.85rem;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.88rem;
+      transition: all 0.2s ease;
+    }
+
+    .field-select:focus, .field-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+
+    .generator-result {
+      background: #080b12;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .cmd-preview {
+      font-family: var(--font-mono);
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+
+    .btn-generator-copy {
+      background: var(--primary);
+      color: #07090e;
+      border: none;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.6rem 1.15rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .btn-generator-copy:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Cards Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.14);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(7, 9, 14, 0.8);
+      padding: 2.5rem 1.5rem;
+      margin-top: auto;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(15px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        top: var(--header-height);
+        height: calc(100vh - var(--header-height));
+        z-index: 90;
+        background: var(--bg-surface);
+        transition: left 0.3s ease;
+        box-shadow: 20px 0 40px rgba(0, 0, 0, 0.7);
+      }
+      .sidebar.open {
+        left: 0;
+      }
+      .menu-toggle {
+        display: block;
+      }
+      .content {
+        padding: 2rem 1.5rem;
+      }
+      .search-box {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir Menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <a href="#" class="brand">
+        <img src="assets/ederus-logo.png" alt="Ederus Logo">
+        <div class="brand-info">
+          <span class="brand-title">ProtectCore <span class="brand-badge">v5.7</span></span>
+          <span class="brand-sub">Ederus Network Documentation</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="top-actions">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar comando o filtro...">
+      </div>
+      <a href="https://editor.ederus.com" target="_blank" rel="noopener" class="btn-icon btn-editor">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        <span>Editor Web</span>
+      </a>
+      <a href="https://github.com/Ederus-Network/ProtectCore" target="_blank" rel="noopener" class="btn-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="nav-group">
+        <div class="nav-label">Navegación Rápida</div>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#intro" class="active">📌 Introducción</a></li>
+          <li class="nav-item"><a href="#generator">⚡ Constructor de Comandos</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Comandos de Auditoría</div>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#lookup">🔍 /po lookup <span class="nav-badge">/po l</span></a></li>
+          <li class="nav-item"><a href="#params">⚙️ Parámetros y Filtros</a></li>
+          <li class="nav-item"><a href="#visual">🎨 Formato Visual CoreProtect</a></li>
+          <li class="nav-item"><a href="#chat-cmd">💬 Chat y Comandos</a></li>
+          <li class="nav-item"><a href="#bedrock">📱 Jugadores Bedrock</a></li>
+          <li class="nav-item"><a href="#actions">📋 Tipos de Acciones</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Herramientas e Inspección</div>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#inspect">🔎 Modo Inspector <span class="nav-badge">/po i</span></a></li>
+          <li class="nav-item"><a href="#near">📍 Auditoría Proximidad <span class="nav-badge">/po near</span></a></li>
+          <li class="nav-item"><a href="#editor">🌐 Editor Web Oficial</a></li>
+          <li class="nav-item"><a href="#rollback">⏪ Reversión <span class="nav-badge">rollback</span></a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Administración</div>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#admin">🛠️ Comandos de Mantenimiento</a></li>
+          <li class="nav-item"><a href="#permissions">🔐 Permisos LuckPerms</a></li>
+          <li class="nav-item"><a href="#tips">💡 Casos Prácticos Staff</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-badge-wrap">
+          <div class="hero-badge-dot"></div>
+          ProtectCore Engine • MariaDB 11.8 • Ederus Network
+        </div>
+        <h1>Guía Oficial de ProtectCore <code>/po</code></h1>
+        <p>Sistema corporativo de registro en tiempo real, auditoría forense, inspección interactiva y reversión de daños diseñado para la infraestructura de Survival, OneBlock y KitPvP.</p>
+
+        <div class="hero-cards">
+          <a href="#lookup" class="hero-card">
+            <span class="hero-card-cmd">/po lookup</span>
+            <span class="hero-card-desc">Búsquedas avanzadas con filtros por chat y consola.</span>
+          </a>
+          <a href="#inspect" class="hero-card">
+            <span class="hero-card-cmd">/po inspect (/po i)</span>
+            <span class="hero-card-desc">Varita de inspección de bloques y cofres con 1 clic.</span>
+          </a>
+          <a href="#editor" class="hero-card">
+            <span class="hero-card-cmd">/po editor</span>
+            <span class="hero-card-desc">Editor web moderno en editor.ederus.com con teletransporte.</span>
+          </a>
+          <a href="#rollback" class="hero-card">
+            <span class="hero-card-cmd">/po rollback</span>
+            <span class="hero-card-desc">Reversión de griefings, robos y explosiones al instante.</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Generator Widget -->
+      <section id="generator">
+        <div class="generator-card">
+          <div class="generator-header">
+            <div class="generator-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Generador Rápido de Comandos ProtectCore</span>
+            </div>
+            <span class="badge badge-primary">Herramienta Interactiva</span>
+          </div>
+          <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Configura los filtros a continuación y obtén tu comando listo para copiar y pegar en el chat de Minecraft o consola.</p>
+          
+          <div class="generator-grid">
+            <div class="field-group">
+              <label class="field-label">Comando Base</label>
+              <select id="genCmd" class="field-select">
+                <option value="lookup">lookup (/po l)</option>
+                <option value="rollback">rollback (/po rollback)</option>
+                <option value="editor">editor (/po editor)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Jugador / Usuario</label>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" id="btnToggleBedrock" class="btn-copy" style="padding: 0 0.5rem;" title="Añadir prefijo Bedrock (.)">. (Bedrock)</button>
+                <input type="text" id="genUser" class="field-input" placeholder="Ej: Steve o .Jugador" style="flex: 1;">
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Ventana de Tiempo</label>
+              <select id="genTime" class="field-select">
+                <option value="30m">30 minutos (30m)</option>
+                <option value="1h" selected>1 hora (1h)</option>
+                <option value="6h">6 horas (6h)</option>
+                <option value="12h">12 horas (12h)</option>
+                <option value="1d">1 día (1d)</option>
+                <option value="3d">3 días (3d)</option>
+                <option value="7d">1 semana (7d)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Radio de Bloques</label>
+              <select id="genRadius" class="field-select">
+                <option value="">Sin radio (Posición o Global)</option>
+                <option value="5">5 bloques (r:5)</option>
+                <option value="15">15 bloques (r:15)</option>
+                <option value="30">30 bloques (r:30)</option>
+                <option value="50">50 bloques (r:50)</option>
+                <option value="global">Global (r:global)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Tipo de Acción (a:)</label>
+              <select id="genAction" class="field-select">
+                <option value="">Todas las acciones</option>
+                <option value="chat">Mensajes de Chat (chat)</option>
+                <option value="cmd">Comandos Ejecutados (cmd)</option>
+                <option value="block_break">Bloques Rotos (break)</option>
+                <option value="block_place">Bloques Colocados (place)</option>
+                <option value="container_take">Ítems Retirados (take)</option>
+                <option value="container_add">Ítems Guardados (add)</option>
+                <option value="interact">Interacciones (interact)</option>
+                <option value="explode">Explosiones (explode)</option>
+                <option value="kill">Asesinatos (kill)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Bloque / Ítem Específico (i:)</label>
+              <input type="text" id="genInclude" class="field-input" placeholder="Ej: diamond_ore, chest">
+            </div>
+          </div>
+
+          <div class="generator-result">
+            <span class="cmd-preview" id="cmdResult">/po lookup t:1h</span>
+            <button class="btn-generator-copy" id="btnCopyGen">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copiar Comando</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Introducción -->
+      <section id="intro">
+        <h2>📌 Introducción y Sintaxis Base</h2>
+        <p><strong>ProtectCore</strong> es el núcleo de auditoría, registro continuo (*logging*) e inspección para la red de servidores de <strong>Ederus Network</strong>. Registra de forma asíncrona cada interacción física, colocación/rotura de bloques, aperturas de cofres, transacciones de ítems, mensajes de chat y ejecución de comandos en una base de datos <strong>MariaDB</strong> dedicada de alto rendimiento.</p>
+        
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>COMANDO BASE</span>
+            <button class="btn-copy" data-clipboard="/po [subcomando] [parámetros]">Copiar</button>
+          </div>
+          <pre><code>/po [subcomando] [parámetros]</code></pre>
+        </div>
+
+        <div class="callout callout-note">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <div class="callout-title">Sintaxis Flexible de Parámetros</div>
+            Todos los parámetros admiten tanto su palabra clave completa (<code>user:</code>, <code>time:</code>, <code>radius:</code>, <code>action:</code>, <code>include:</code>, <code>exclude:</code>, <code>page:</code>) como sus alias abreviados ultra rápidos (<code>u:</code>, <code>t:</code>, <code>r:</code>, <code>a:</code>, <code>i:</code>, <code>e:</code>, <code>p:</code>).
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Lookup -->
+      <section id="lookup">
+        <h2>🔍 1. Auditoría en Juego (/po lookup o /po l)</h2>
+        <p>Permite realizar búsquedas históricas filtradas de eventos directamente desde el chat del juego o la consola administrativa, replicando con máxima precisión la interfaz y experiencia estándar de <strong>CoreProtect</strong>.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>SINTAXIS GENERAL</span>
+            <button class="btn-copy" data-clipboard="/po lookup u:<jugador> t:<tiempo> r:<radio> a:<acción> i:<bloques> e:<excluidos> p:<página>">Copiar</button>
+          </div>
+          <pre><code>/po lookup [u:&lt;jugador&gt;] [t:&lt;tiempo&gt;] [r:&lt;radio&gt;] [a:&lt;acción&gt;] [i:&lt;bloques&gt;] [e:&lt;excluidos&gt;] [p:&lt;página&gt;]
+# O mediante su alias abreviado:
+/po l [parámetros]</code></pre>
+        </div>
+
+        <h3>Paginación Rápida con Memoria</h3>
+        <p>ProtectCore recuerda tu última búsqueda activa por cada jugador o staff. Para cambiar de página no es necesario volver a escribir todos los filtros:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>CAMBIO DIRECTO DE PÁGINA</span>
+            <button class="btn-copy" data-clipboard="/po l 2">Copiar</button>
+          </div>
+          <pre><code>/po l 2
+/po lookup 3</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Parameters -->
+      <section id="params">
+        <h2>⚙️ Tabla de Parámetros y Filtros</h2>
+        <p>Puedes combinar cualquiera de los siguientes parámetros para acotar la búsqueda al evento exacto que necesitas auditar:</p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Parámetro</th>
+                <th>Abreviatura</th>
+                <th>Descripción</th>
+                <th>Ejemplos de Uso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>user:&lt;nombre&gt;</code></td>
+                <td><span class="badge badge-primary">u:&lt;nombre&gt;</span></td>
+                <td>Jugador o entidad a inspeccionar. Soporta usuarios Java y Bedrock.</td>
+                <td><code>u:Steve</code>, <code>u:.CarlosMC</code></td>
+              </tr>
+              <tr>
+                <td><code>time:&lt;periodo&gt;</code></td>
+                <td><span class="badge badge-primary">t:&lt;tiempo&gt;</span></td>
+                <td>Ventana retrospectiva de tiempo (por defecto: <code>1d</code>).</td>
+                <td><code>t:10m</code>, <code>t:2h</code>, <code>t:12h</code>, <code>t:3d</code>, <code>t:2w</code></td>
+              </tr>
+              <tr>
+                <td><code>radius:&lt;bloques&gt;</code></td>
+                <td><span class="badge badge-primary">r:&lt;número&gt;</span></td>
+                <td>Radio esférico en bloques desde tu posición actual, o <code>global</code>.</td>
+                <td><code>r:5</code>, <code>r:15</code>, <code>r:50</code>, <code>r:global</code></td>
+              </tr>
+              <tr>
+                <td><code>action:&lt;tipo&gt;</code></td>
+                <td><span class="badge badge-primary">a:&lt;acción&gt;</span></td>
+                <td>Tipo específico de evento a buscar.</td>
+                <td><code>a:chat</code>, <code>a:cmd</code>, <code>a:break</code>, <code>a:take</code></td>
+              </tr>
+              <tr>
+                <td><code>include:&lt;items&gt;</code></td>
+                <td><span class="badge badge-primary">i:&lt;material&gt;</span></td>
+                <td>Filtra solo por ciertos bloques o ítems separados por comas.</td>
+                <td><code>i:diamond_ore,ancient_debris</code></td>
+              </tr>
+              <tr>
+                <td><code>exclude:&lt;items&gt;</code></td>
+                <td><span class="badge badge-primary">e:&lt;material&gt;</span></td>
+                <td>Omite materiales irrelevantes para reducir el ruido.</td>
+                <td><code>e:stone,dirt,cobblestone</code></td>
+              </tr>
+              <tr>
+                <td><code>page:&lt;número&gt;</code></td>
+                <td><span class="badge badge-primary">p:&lt;página&gt;</span></td>
+                <td>Página del reporte histórico (también navegable con ◀ y ▶).</td>
+                <td><code>p:2</code>, <code>/po l 3</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Visual Standard -->
+      <section id="visual">
+        <h2>🎨 Formato Visual Idéntico a CoreProtect</h2>
+        <p>ProtectCore adopta con fidelidad el estándar visual al que todo el equipo de moderación está acostumbrado:</p>
+
+        <!-- Simulated Chat Window -->
+        <div class="mc-sim">
+          <div class="mc-sim-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            Simulación de Chat en Juego - ProtectCore Lookup
+          </div>
+          <div><span class="mc-header">----- ProtectCore Lookup Results ----- (Página 1/3)</span></div>
+          <div><span class="mc-gray">0.05/h ago</span> <span class="mc-white">-</span> <span class="mc-aqua">Didisky28</span> <span class="mc-red">-</span> <span class="mc-aqua">soul_sand</span></div>
+          <div><span class="mc-darkgray">  ^</span> <span class="mc-coord">(3660/64/-4307/world_nether)</span> <span class="mc-gray">(a:block_break)</span></div>
+          
+          <div><span class="mc-gray">0.12/h ago</span> <span class="mc-white">-</span> <span class="mc-aqua">NovaZerafin</span> <span class="mc-green">+</span> <span class="mc-aqua">diamond_block</span></div>
+          <div><span class="mc-darkgray">  ^</span> <span class="mc-coord">(-120/72/450/world)</span> <span class="mc-gray">(a:block_place)</span></div>
+          
+          <div><span class="mc-gray">0.40/h ago</span> <span class="mc-white">-</span> <span class="mc-aqua">GrieferMC</span> <span class="mc-red">-</span> <span class="mc-aqua">x64 netherite_ingot</span> <span class="mc-strike">(rolled back)</span></div>
+          <div><span class="mc-darkgray">  ^</span> <span class="mc-coord">(105/65/-88/world)</span> <span class="mc-gray">(a:container_take)</span></div>
+
+          <div style="margin-top: 0.5rem;"><span class="mc-header">-----</span> <span class="mc-aqua">[◀ Anterior]</span> <span class="mc-gray">Página 1/3</span> <span class="mc-aqua">[Siguiente ▶]</span> <span class="mc-header">-----</span></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">⏱️ Tiempos Relativos Dinámicos</div>
+            <div class="card-desc">Cálculo dinámico en segundos, minutos, horas o días (<code>0.05/h ago</code>, <code>2.40/d ago</code>). Al colocar el cursor sobre el tiempo, verás la marca temporal completa en formato <code>yyyy-MM-dd HH:mm:ss</code>.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🎯 Coordenadas con Teletransporte</div>
+            <div class="card-desc">Cada registro detalla la ubicación <code>^ (x/y/z/mundo)</code>. Al hacer <strong>clic izquierdo</strong> sobre las coordenadas, el servidor te teletransporta automáticamente al lugar exacto.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">📦 Contenedores y Metadata</div>
+            <div class="card-desc">Muestra la cantidad exacta de ítems (<code>x64 oak_planks</code>) y al pasar el cursor sobre ellos revela encantamientos, lore y nombres personalizados coloreados.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">✨ Indicador de Rollback</div>
+            <div class="card-desc">Los eventos que ya han sido revertidos se muestran tachados con la leyenda <code>(rolled back)</code>, evitando reversiones duplicadas o confusiones entre moderadores.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Chat and Commands -->
+      <section id="chat-cmd">
+        <h2>💬 Registro de Mensajes de Chat y Comandos</h2>
+        <p>ProtectCore registra el historial conversacional y la ejecución de comandos en tiempo real, permitiendo auditar incidentes de conducta, spam, acoso o abuso de comandos de forma inmediata:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>HISTORIAL DE MENSAJES DE CHAT</span>
+            <button class="btn-copy" data-clipboard="/po lookup u:Jugador a:chat t:6h">Copiar</button>
+          </div>
+          <pre><code>/po lookup u:Jugador a:chat t:6h
+# Alias válidos: a:chat, a:msg, a:message, a:player_message
+# Salida: 0.10/h ago - Steve: Hola a todos!</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>HISTORIAL DE COMANDOS EJECUTADOS</span>
+            <button class="btn-copy" data-clipboard="/po lookup u:Jugador a:cmd t:1d">Copiar</button>
+          </div>
+          <pre><code>/po lookup u:Jugador a:cmd t:1d
+# Alias válidos: a:cmd, a:command, a:player_command
+# Salida: 0.15/h ago - Steve: /pay Pedro 5000</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Bedrock -->
+      <section id="bedrock">
+        <h2>📱 Soporte para Jugadores de Bedrock</h2>
+        <p>Los jugadores de <strong>Bedrock Edition</strong> acceden a Ederus Network a través de Geyser/Floodgate con el prefijo oficial de punto (<code>.</code>). ProtectCore los reconoce y audita con total normalidad:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>EJEMPLO DE BÚSQUEDA BEDROCK</span>
+            <button class="btn-copy" data-clipboard="/po lookup u:.AlvaroGaming a:chat t:2d">Copiar</button>
+          </div>
+          <pre><code>/po lookup u:.AlvaroGaming a:chat t:2d
+/po lookup u:.CarlosMC r:20 t:1h</code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">✨</div>
+          <div class="callout-body">
+            <div class="callout-title">Resolución Inteligente de UUIDs</div>
+            No es necesario conocer el UUID especial de Bedrock. Puedes buscar tanto con el punto (<code>u:.Nombre</code>) como seleccionarlo desde los filtros desplegables del editor web; ProtectCore resolverá su perfil automáticamente contra MariaDB.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Actions -->
+      <section id="actions">
+        <h2>📋 Tipos de Acciones Disponibles (<code>action:</code>)</h2>
+        <p>A continuación se detallan todas las acciones registradas por el motor de ProtectCore y sus respectivos atajos:</p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Acción Oficial</th>
+                <th>Atajos / Alias</th>
+                <th>Descripción del Registro</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>BLOCK_BREAK</code></td>
+                <td><span class="badge badge-danger">break</span></td>
+                <td>Bloques rotos por jugadores, herramientas o fluidos.</td>
+              </tr>
+              <tr>
+                <td><code>BLOCK_PLACE</code></td>
+                <td><span class="badge badge-success">place</span></td>
+                <td>Bloques colocados por jugadores o mecanismos.</td>
+              </tr>
+              <tr>
+                <td><code>CONTAINER_ADD</code></td>
+                <td><span class="badge badge-success">add</span></td>
+                <td>Ítems depositados en cofres, shulkers, barriles o tolvas.</td>
+              </tr>
+              <tr>
+                <td><code>CONTAINER_TAKE</code></td>
+                <td><span class="badge badge-danger">take</span></td>
+                <td>Ítems sustraídos o retirados de contenedores.</td>
+              </tr>
+              <tr>
+                <td><code>INTERACT</code></td>
+                <td><span class="badge badge-purple">interact, click</span></td>
+                <td>Apertura de cofres, puertas, palancas, trampillas o botones.</td>
+              </tr>
+              <tr>
+                <td><code>ITEM_PICKUP</code></td>
+                <td><span class="badge badge-primary">pickup</span></td>
+                <td>Ítems recogidos del suelo por jugadores.</td>
+              </tr>
+              <tr>
+                <td><code>ITEM_DROP</code></td>
+                <td><span class="badge badge-warning">drop</span></td>
+                <td>Ítems arrojados o soltados en el suelo.</td>
+              </tr>
+              <tr>
+                <td><code>BUCKET_EMPTY</code></td>
+                <td><span class="badge badge-danger">bucket</span></td>
+                <td>Vaciado de cubos (lava, agua) sobre el terreno.</td>
+              </tr>
+              <tr>
+                <td><code>PLAYER_MESSAGE</code></td>
+                <td><span class="badge badge-primary">chat, msg</span></td>
+                <td>Mensajes enviados al chat del servidor.</td>
+              </tr>
+              <tr>
+                <td><code>PLAYER_COMMAND</code></td>
+                <td><span class="badge badge-warning">cmd</span></td>
+                <td>Comandos ejecutados en el servidor.</td>
+              </tr>
+              <tr>
+                <td><code>BLOCK_EXPLODE</code></td>
+                <td><span class="badge badge-danger">explode</span></td>
+                <td>Daño y bloques destruidos por TNT, Creepers, Withers, etc.</td>
+              </tr>
+              <tr>
+                <td><code>ENTITY_KILL</code></td>
+                <td><span class="badge badge-danger">kill</span></td>
+                <td>Asesinato de jugadores, aldeanos o mascotas.</td>
+              </tr>
+              <tr>
+                <td><code>ALL</code></td>
+                <td><span class="badge badge-primary">all</span></td>
+                <td>Muestra absolutamente todo sin filtrar por tipo de acción.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Inspector -->
+      <section id="inspect">
+        <h2>🔎 2. Modo Inspector en Mano (/po inspect o /po i)</h2>
+        <p>Activa o desactiva la varita de inspección interactiva para auditar el terreno o los cofres directamente con clics:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>ACTIVAR / DESACTIVAR INSPECTOR</span>
+            <button class="btn-copy" data-clipboard="/po inspect">Copiar</button>
+          </div>
+          <pre><code>/po inspect
+# O mediante su alias rápido:
+/po i</code></pre>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">⛏️ Clic Izquierdo en Bloque</div>
+            <div class="card-desc">Inspecciona el bloque apuntado y muestra de inmediato quién lo colocó, quién lo rompió anteriormente y hace cuánto tiempo ocurrió el suceso.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">📦 Clic Derecho en Contenedor</div>
+            <div class="card-desc">Inspecciona exclusivamente el cofre, barril o shulker seleccionado, mostrando la lista cronológica de depósitos y retiros de ítems con sus cantidades exactas.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🧱 Clic Derecho en Bloque Sólido</div>
+            <div class="card-desc">Inspecciona automáticamente el bloque adyacente a la cara tocada (<code>block.getRelative(face)</code>). Permite ver qué bloque fue roto encima o al lado sin tener que demoler paredes.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔄 Salir del Modo Inspector</div>
+            <div class="card-desc">Vuelve a escribir <code>/po i</code> para desactivar la varita y retomar tu interacción de juego normal.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Near -->
+      <section id="near">
+        <h2>📍 3. Auditoría de Proximidad Rápida (/po near)</h2>
+        <p>Busca instantáneamente los últimos eventos ocurridos alrededor de tu posición actual en un radio determinado, sin tener que escribir múltiples parámetros:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>SINTAXIS PROXIMIDAD</span>
+            <button class="btn-copy" data-clipboard="/po near 10 30m">Copiar</button>
+          </div>
+          <pre><code>/po near [radio] [tiempo]
+# Ejemplo práctico:
+/po near 10 30m
+# Muestra todo lo ocurrido en un radio de 10 bloques durante los últimos 30 minutos.</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Editor -->
+      <section id="editor">
+        <h2>🌐 4. Editor Web Moderno (/po editor)</h2>
+        <p>ProtectCore integra un panel web gráfico de última generación servido bajo el dominio oficial:</p>
+        <p style="font-size: 1.1rem; font-weight: 700; color: #38bdf8;">🔗 <a href="https://editor.ederus.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">https://editor.ederus.com</a></p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>GENERAR SESIÓN SEGURA</span>
+            <button class="btn-copy" data-clipboard="/po editor">Copiar</button>
+          </div>
+          <pre><code>/po editor
+# Con filtros precargados:
+/po editor user:Steve time:1d
+/po editor user:.BedrockUser time:6h</code></pre>
+        </div>
+
+        <div class="callout callout-note">
+          <div class="callout-icon">🛡️</div>
+          <div class="callout-body">
+            <div class="callout-title">Tokens Criptográficos con TTL</div>
+            Al ejecutar <code>/po editor</code> recibirás un enlace con token temporal con validez de <strong>60 minutos</strong>. No requiere ingresar contraseñas y expira automáticamente para garantizar la seguridad.
+          </div>
+        </div>
+
+        <h3>Características Clave del Panel Web</h3>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">🎨 Parser de Colores y Gradientes</div>
+            <div class="card-desc">Soporte nativo para códigos Bungee hex (<code>§x...</code>), MiniMessage gradients, rainbow y estilos clásicos en nombres de ítems y lores.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">⚡ Teletransporte con 1 Clic</div>
+            <div class="card-desc">Haz clic en las coordenadas <code>(X, Y, Z)</code> de cualquier registro en la web para que tu jugador se teletransporte instantáneamente en el servidor.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔍 Filtros Instantáneos</div>
+            <div class="card-desc">Filtra en tiempo real por jugador, fecha/hora, material, encantamiento específico o texto dentro del lore del ítem.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌓 Modo Claro / Oscuro</div>
+            <div class="card-desc">Interfaz adaptativa con paleta corporativa de Ederus Network y cambio de tema con persistencia local.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Rollback -->
+      <section id="rollback">
+        <h2>⏪ 5. Reversión de Cambios (/po rollback)</h2>
+        <p>Restaura el estado anterior del mundo deshaciendo acciones destructivas (*griefing*, saqueos masivos de cofres, explosiones de TNT o colocación de lava):</p>
+
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-body">
+            <div class="callout-title">Precaución al Realizar Reversiones</div>
+            Los rollbacks modifican el mundo físico en tiempo real. Utiliza siempre radios prudentes (<code>r:15</code>) y rangos temporales acotados para no afectar construcciones legítimas de otros usuarios.
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>SINTAXIS DE ROLLBACK</span>
+            <button class="btn-copy" data-clipboard="/po rollback u:<jugador> t:<tiempo> r:<radio> a:<acción> i:<incluir> e:<excluir>">Copiar</button>
+          </div>
+          <pre><code>/po rollback u:&lt;jugador&gt; t:&lt;tiempo&gt; [r:&lt;radio&gt;] [a:&lt;acción&gt;] [i:&lt;incluir&gt;] [e:&lt;excluir&gt;]</code></pre>
+        </div>
+
+        <h3>Casos de Uso Prácticos de Rollback</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>1. REVERTIR GRIEFING EN UN RADIO DE 20 BLOQUES</span>
+            <button class="btn-copy" data-clipboard="/po rollback u:Griefer t:2h r:20">Copiar</button>
+          </div>
+          <pre><code>/po rollback u:Griefer t:2h r:20</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>2. REVERTIR ROBOS EN COFRES (CONTAINER TAKE)</span>
+            <button class="btn-copy" data-clipboard="/po rollback u:Ladron t:6h r:15 a:container_take">Copiar</button>
+          </div>
+          <pre><code>/po rollback u:Ladron t:6h r:15 a:container_take</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span>3. REVERTIR SOLO LAVA Y FUEGO</span>
+            <button class="btn-copy" data-clipboard="/po rollback u:Griefer t:1h r:30 i:lava,fire">Copiar</button>
+          </div>
+          <pre><code>/po rollback u:Griefer t:1h r:30 i:lava,fire</code></pre>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-icon">🛑</div>
+          <div class="callout-body">
+            <div class="callout-title">Confirmación de Seguridad en Rollback Global</div>
+            Si ejecutas un rollback sin especificar el radio (<code>/po rollback u:Hacker t:1h</code>), ProtectCore te solicitará confirmación. Deberás volver a escribir el comando dentro de los siguientes <strong>15 segundos</strong> para validar la operación en todo el mundo.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Admin -->
+      <section id="admin">
+        <h2>🛠️ 6. Comandos Administrativos y Mantenimiento</h2>
+        <p>Herramientas para monitorizar el estado del motor, recargar configuraciones y purgar bases de datos:</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">📊 /po status</div>
+            <div class="card-desc">Muestra la salud de MariaDB, latencia, tamaño de cola de eventos asíncronos y estado del servidor web interno.</div>
+            <div style="margin-top: 0.75rem;"><button class="btn-copy" data-clipboard="/po status">Copiar Comando</button></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🔄 /po reload</div>
+            <div class="card-desc">Aplica cambios en <code>config.yml</code>, actualiza traducciones y reinicia el servicio HTTP del editor web sin reiniciar el servidor de Minecraft.</div>
+            <div style="margin-top: 0.75rem;"><button class="btn-copy" data-clipboard="/po reload">Copiar Comando</button></div>
+          </div>
+
+          <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">🧹 /po purge t:&lt;tiempo&gt;</div>
+            <div class="card-desc">Elimina de forma segura registros antiguos de la base de datos MariaDB para optimizar el almacenamiento en disco.</div>
+            <div style="margin-top: 0.75rem;"><button class="btn-copy" data-clipboard="/po purge t:60d">Copiar: /po purge t:60d</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Permissions -->
+      <section id="permissions">
+        <h2>🔐 7. Tabla de Permisos (LuckPerms)</h2>
+        <p>Estructura de permisos jerárquica recomendada para configurar en LuckPerms según los roles del staff:</p>
+
+        <div style="margin-bottom: 1rem;">
+          <input type="text" id="permFilter" class="field-input" placeholder="Filtrar permisos (ej: inspect, rollback, admin)..." style="width: 100%; max-width: 380px;">
+        </div>
+
+        <div class="table-container">
+          <table id="permTable">
+            <thead>
+              <tr>
+                <th>Nodo de Permiso</th>
+                <th>Descripción</th>
+                <th>Rango Recomendado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>protectcore.commands</code></td>
+                <td>Acceso al comando base <code>/po</code></td>
+                <td><span class="badge badge-primary">Helper+ / Staff</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.inspect</code></td>
+                <td>Uso del modo inspector <code>/po inspect</code></td>
+                <td><span class="badge badge-primary">Helper, Mod, Admin</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.near</code></td>
+                <td>Uso de auditoría por proximidad <code>/po near</code></td>
+                <td><span class="badge badge-primary">Helper, Mod, Admin</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.lookup</code></td>
+                <td>Búsquedas históricas avanzadas <code>/po lookup</code></td>
+                <td><span class="badge badge-primary">Mod, Admin</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.editor</code></td>
+                <td>Generación de enlaces al panel web <code>/po editor</code></td>
+                <td><span class="badge badge-primary">Mod, Admin</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.rollback</code></td>
+                <td>Reversión física de eventos <code>/po rollback</code></td>
+                <td><span class="badge badge-warning">SrMod, Admin</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.rollback.bypass</code></td>
+                <td>Ignora límites de radio y tiempo en rollbacks</td>
+                <td><span class="badge badge-danger">Admin, Owner</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.admin.status</code></td>
+                <td>Ver métricas y estado del motor <code>/po status</code></td>
+                <td><span class="badge badge-purple">Admin, Developer</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.reload</code></td>
+                <td>Recargar configuración y web server <code>/po reload</code></td>
+                <td><span class="badge badge-purple">Developer, Owner</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.admin.purge</code></td>
+                <td>Purgar base de datos histórica <code>/po purge</code></td>
+                <td><span class="badge badge-danger">Owner</span></td>
+              </tr>
+              <tr>
+                <td><code>protectcore.*</code></td>
+                <td>Acceso total sin restricciones</td>
+                <td><span class="badge badge-danger">Administrador General</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Tips -->
+      <section id="tips">
+        <h2>💡 8. Trucos Rápidos para Moderadores (Staff Cheatsheet)</h2>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">📦 1. ¿Sospecha de saqueo en una base?</div>
+            <div class="card-desc">
+              1. Ve a la ubicación del cofre y activa <code>/po inspect</code>.<br>
+              2. Haz <strong>clic derecho</strong> en el cofre saqueado para ver quién extrajo los ítems, en qué segundo y la cantidad exacta.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🤬 2. ¿Insultos o toxicidad en el chat?</div>
+            <div class="card-desc">
+              Ejecuta <code>/po lookup u:Jugador a:chat t:1h</code> para recuperar todos los mensajes enviados por el usuario, aun si pasaron inadvertidos por el chat general.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">⚠️ 3. ¿Comandos sospechosos antes de salir?</div>
+            <div class="card-desc">
+              Ejecuta <code>/po lookup u:Jugador a:cmd t:3h</code> para consultar si el usuario intentó comandos de teletransporte, pagos ilícitos o explotación de bugs.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">💥 4. ¿Griefing o destrucción masiva?</div>
+            <div class="card-desc">
+              1. <code>/po lookup r:20 t:12h</code> para identificar a los culpables.<br>
+              2. <code>/po rollback u:Culpable t:12h r:25</code> para reparar el terreno en segundos.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://ederus.com" target="_blank" rel="noopener">Ederus Network</a>
+      <a href="https://editor.ederus.com" target="_blank" rel="noopener">Editor Web</a>
+      <a href="https://tienda.ederus.com" target="_blank" rel="noopener">Tienda</a>
+      <a href="https://discord.gg/6NEzQEdcvV" target="_blank" rel="noopener">Discord</a>
+      <a href="https://github.com/Ederus-Network/ProtectCore" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <p>© 2026 Ederus Network. ProtectCore Audit & Investigation System.</p>
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toastMsg">Copiado al portapapeles</span>
+  </div>
+
+  <script>
+    // Toast helper
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg || 'Copiado al portapapeles';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // Copy Buttons
+    document.querySelectorAll('.btn-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = btn.getAttribute('data-clipboard');
+        if (text) {
+          navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.textContent;
+            btn.textContent = '¡Copiado!';
+            btn.classList.add('copied');
+            showToast('Comando copiado: ' + text);
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.classList.remove('copied');
+            }, 1800);
+          });
+        }
+      });
+    });
+
+    // Mobile Sidebar Toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    if (menuToggle && sidebar) {
+      menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+      // Close sidebar when clicking a nav link on mobile
+      sidebar.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 992) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ScrollSpy for Active Sidebar Item
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.sidebar .nav-item a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const top = section.offsetTop - 120;
+        if (window.scrollY >= top) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Quick Search Input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (!q) return;
+        const match = Array.from(sections).find(sec => {
+          return sec.textContent.toLowerCase().includes(q);
+        });
+        if (match) {
+          match.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+
+    // Permissions Table Filter
+    const permFilter = document.getElementById('permFilter');
+    const permTable = document.getElementById('permTable');
+    if (permFilter && permTable) {
+      permFilter.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = permTable.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+
+    // Interactive Command Generator
+    const genCmd = document.getElementById('genCmd');
+    const genUser = document.getElementById('genUser');
+    const genTime = document.getElementById('genTime');
+    const genRadius = document.getElementById('genRadius');
+    const genAction = document.getElementById('genAction');
+    const genInclude = document.getElementById('genInclude');
+    const cmdResult = document.getElementById('cmdResult');
+    const btnCopyGen = document.getElementById('btnCopyGen');
+    const btnToggleBedrock = document.getElementById('btnToggleBedrock');
+
+    function updateGeneratedCommand() {
+      const cmd = genCmd.value;
+      const user = genUser.value.trim();
+      const time = genTime.value;
+      const radius = genRadius.value;
+      const action = genAction.value;
+      const include = genInclude.value.trim();
+
+      const parts = ['/po', cmd];
+
+      if (user) parts.push('u:' + user);
+      if (time) parts.push('t:' + time);
+      if (radius) parts.push(radius === 'global' ? 'r:global' : 'r:' + radius);
+      if (action) parts.push('a:' + action);
+      if (include) parts.push('i:' + include);
+
+      const fullCmd = parts.join(' ');
+      cmdResult.textContent = fullCmd;
+      btnCopyGen.setAttribute('data-clipboard', fullCmd);
+    }
+
+    [genCmd, genUser, genTime, genRadius, genAction, genInclude].forEach(el => {
+      if (el) el.addEventListener('input', updateGeneratedCommand);
+      if (el) el.addEventListener('change', updateGeneratedCommand);
+    });
+
+    if (btnToggleBedrock && genUser) {
+      btnToggleBedrock.addEventListener('click', () => {
+        let val = genUser.value.trim();
+        if (val.startsWith('.')) {
+          genUser.value = val.substring(1);
+        } else {
+          genUser.value = '.' + val;
+        }
+        updateGeneratedCommand();
+      });
+    }
+
+    if (btnCopyGen) {
+      btnCopyGen.addEventListener('click', () => {
+        const text = cmdResult.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Comando copiado: ' + text);
+        });
+      });
+    }
+
+    // Initialize
+    updateGeneratedCommand();
+  </script>
+</body>
+</html>
