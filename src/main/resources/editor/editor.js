@@ -65,9 +65,136 @@ const MINECRAFT_COLORS = {
   '0': '#000000', '1': '#0000AA', '2': '#00AA00', '3': '#00AAAA',
   '4': '#AA0000', '5': '#AA00AA', '6': '#FFAA00', '7': '#AAAAAA',
   '8': '#555555', '9': '#5555FF', 'a': '#55FF55', 'b': '#55FFFF',
-  'c': '#FF5555', 'd': '#FF55FF', 'e': '#FFFF55', 'f': '#FFFFFF',
-  'k': null, 'l': null, 'm': null, 'n': null, 'o': null, 'r': null
+  'c': '#FF5555', 'd': '#FF55FF', 'e': '#FFFF55', 'f': '#FFFFFF'
 };
+
+const NAMED_COLORS = {
+  black: '#000000',
+  dark_blue: '#0000AA',
+  dark_green: '#00AA00',
+  dark_aqua: '#00AAAA',
+  dark_red: '#AA0000',
+  dark_purple: '#AA00AA',
+  gold: '#FFAA00',
+  gray: '#AAAAAA',
+  grey: '#AAAAAA',
+  dark_gray: '#555555',
+  dark_grey: '#555555',
+  blue: '#5555FF',
+  green: '#55FF55',
+  aqua: '#55FFFF',
+  red: '#FF5555',
+  light_purple: '#FF55FF',
+  yellow: '#FFFF55',
+  white: '#FFFFFF'
+};
+
+function parseHex(hexStr) {
+  let h = hexStr.replace(/^#/, '');
+  if (h.length === 3) {
+    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  }
+  if (h.length !== 6) return null;
+  const num = parseInt(h, 16);
+  if (isNaN(num)) return null;
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+    hex: '#' + h.toLowerCase()
+  };
+}
+
+function colorToRgb(colorStr) {
+  if (!colorStr) return null;
+  colorStr = colorStr.trim().toLowerCase();
+  if (NAMED_COLORS[colorStr]) {
+    return parseHex(NAMED_COLORS[colorStr]);
+  }
+  return parseHex(colorStr);
+}
+
+function interpolateRgb(c1, c2, factor) {
+  const r = Math.round(c1.r + factor * (c2.r - c1.r));
+  const g = Math.round(c1.g + factor * (c2.g - c1.g));
+  const b = Math.round(c1.b + factor * (c2.b - c1.b));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function evaluateMultiStopGradient(stops, factor) {
+  if (stops.length === 0) return '#FFFFFF';
+  if (stops.length === 1 || factor <= 0) return stops[0].hex || `rgb(${stops[0].r},${stops[0].g},${stops[0].b})`;
+  if (factor >= 1) return stops[stops.length - 1].hex || `rgb(${stops[stops.length-1].r},${stops[stops.length-1].g},${stops[stops.length-1].b})`;
+
+  const segmentLength = 1 / (stops.length - 1);
+  const index = Math.min(Math.floor(factor / segmentLength), stops.length - 2);
+  const localFactor = (factor - (index * segmentLength)) / segmentLength;
+  return interpolateRgb(stops[index], stops[index + 1], localFactor);
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+function preprocessMiniMessage(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  text = text.replace(/<gradient:([^>]+)>(.*?)<\/gradient>/gis, (match, colorList, content) => {
+    const colorNames = colorList.split(':');
+    const stops = [];
+    for (const cn of colorNames) {
+      const rgb = colorToRgb(cn);
+      if (rgb) stops.push(rgb);
+    }
+    if (stops.length === 0) return content;
+
+    const chars = Array.from(content);
+    if (chars.length === 0) return '';
+    if (chars.length === 1) return `<span style="color:${stops[0].hex}">${chars[0]}</span>`;
+
+    let res = '';
+    const total = chars.length;
+    chars.forEach((char, idx) => {
+      const factor = idx / (total - 1);
+      const color = evaluateMultiStopGradient(stops, factor);
+      res += `<span style="color:${color}">${char}</span>`;
+    });
+    return res;
+  });
+
+  text = text.replace(/<rainbow>(.*?)<\/rainbow>/gis, (match, content) => {
+    const chars = Array.from(content);
+    if (chars.length === 0) return '';
+    let res = '';
+    const total = chars.length;
+    chars.forEach((char, idx) => {
+      const h = idx / Math.max(total, 1);
+      const color = hslToRgb(h, 0.9, 0.6);
+      res += `<span style="color:${color}">${char}</span>`;
+    });
+    return res;
+  });
+
+  return text;
+}
 
 function isMsgOrCmd(actionId) {
   return actionId === 'player-message' || actionId === 'player-command';
@@ -116,60 +243,192 @@ function escapeHtml(value) {
 function translateColorCodesSafe(input) {
   if (!input) return '';
 
+  let text = preprocessMiniMessage(String(input));
   let output = '';
-  const closeStack =[];
+  const closeStack = [];
 
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i];
+  const closeAll = () => {
+    while (closeStack.length) {
+      output += closeStack.pop();
+    }
+  };
 
-    if (ch === '§' && i + 1 < input.length) {
-      const code = input[++i].toLowerCase();
-      const color = MINECRAFT_COLORS[code];
+  const openSpan = (style) => {
+    output += `<span style="${style}">`;
+    closeStack.push('</span>');
+  };
 
-      if (color !== undefined) {
-        if (color !== null) {
-          while (closeStack.length) output += closeStack.pop();
-          output += `<span style="color:${color}">`;
-          closeStack.push('</span>');
-        } else {
-          switch (code) {
-            case 'l':
-              output += '<strong>';
-              closeStack.push('</strong>');
-              break;
-            case 'o':
-              output += '<em>';
-              closeStack.push('</em>');
-              break;
-            case 'n':
-              output += '<u>';
-              closeStack.push('</u>');
-              break;
-            case 'm':
-              output += '<del>';
-              closeStack.push('</del>');
-              break;
-            case 'k':
-              output += '<span class="mc-obfuscated">';
-              closeStack.push('</span>');
-              break;
-            case 'r':
-              while (closeStack.length) output += closeStack.pop();
-              break;
-          }
-        }
+  const openTag = (tag) => {
+    output += `<${tag}>`;
+    closeStack.push(`</${tag}>`);
+  };
+
+  const len = text.length;
+  let i = 0;
+
+  while (i < len) {
+    const ch = text[i];
+
+    // Check for Section (§) or Ampersand (&) formatting
+    if (ch === '§' || ch === '&') {
+      const remaining = text.slice(i);
+
+      // 1. Bungee/Spigot Hex format: §x§r§r§g§g§b§b or &x&r&r&g&g&b&b (any case)
+      const bungeeHexMatch = remaining.match(/^([§&]x(?:[§&][0-9a-fA-F]){6})/i);
+      if (bungeeHexMatch) {
+        const raw = bungeeHexMatch[1];
+        const hex = '#' + raw.replace(/[§&x]/gi, '');
+        closeAll();
+        openSpan(`color:${hex}`);
+        i += raw.length;
         continue;
       }
 
-      // Unknown code -> keep it escaped
-      output += escapeHtml('§' + code);
-      continue;
+      // 2. Standard Hex format: &#RRGGBB or §#RRGGBB or &[#RRGGBB]
+      const hexMatch = remaining.match(/^[§&](?:#|\[#)([0-9a-fA-F]{6})\]?/i);
+      if (hexMatch) {
+        const hex = '#' + hexMatch[1];
+        closeAll();
+        openSpan(`color:${hex}`);
+        i += hexMatch[0].length;
+        continue;
+      }
+
+      // 3. Single legacy code: §0-§f, §l, etc.
+      if (i + 1 < len) {
+        const code = text[i + 1].toLowerCase();
+        const color = MINECRAFT_COLORS[code];
+
+        if (color !== undefined) {
+          closeAll();
+          openSpan(`color:${color}`);
+          i += 2;
+          continue;
+        }
+
+        switch (code) {
+          case 'l':
+            openTag('strong');
+            i += 2;
+            continue;
+          case 'o':
+            openTag('em');
+            i += 2;
+            continue;
+          case 'n':
+            openTag('u');
+            i += 2;
+            continue;
+          case 'm':
+            openTag('del');
+            i += 2;
+            continue;
+          case 'k':
+            output += '<span class="mc-obfuscated">';
+            closeStack.push('</span>');
+            i += 2;
+            continue;
+          case 'r':
+            closeAll();
+            i += 2;
+            continue;
+        }
+      }
     }
 
+    // Check for curly hex format: {#RRGGBB}
+    if (ch === '{') {
+      const remaining = text.slice(i);
+      const curlyHexMatch = remaining.match(/^\{#([0-9a-fA-F]{6})\}/i);
+      if (curlyHexMatch) {
+        closeAll();
+        openSpan(`color:#${curlyHexMatch[1]}`);
+        i += curlyHexMatch[0].length;
+        continue;
+      }
+    }
+
+    // Check for MiniMessage / XML tags: <tag>
+    if (ch === '<') {
+      const remaining = text.slice(i);
+
+      // Check if this is an already rendered span (from preprocessMiniMessage)
+      const renderedSpanMatch = remaining.match(/^<span style="([^"]+)">/i);
+      if (renderedSpanMatch) {
+        output += renderedSpanMatch[0];
+        closeStack.push('</span>');
+        i += renderedSpanMatch[0].length;
+        continue;
+      }
+      if (remaining.startsWith('</span>')) {
+        if (closeStack.length && closeStack[closeStack.length - 1] === '</span>') {
+          output += closeStack.pop();
+        } else {
+          output += '</span>';
+        }
+        i += 7;
+        continue;
+      }
+
+      // Closing tags: </color>, </gradient>, </rainbow>, </b>, </i>, </u>, </s>, </red>, etc.
+      const closeTagMatch = remaining.match(/^<\/(color|colour|gradient|rainbow|bold|b|italic|em|i|underlined|u|strikethrough|st|s|obf|obfuscated|reset|r|black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|grey|dark_gray|dark_grey|blue|green|aqua|red|light_purple|yellow|white)>/i);
+      if (closeTagMatch) {
+        if (closeStack.length) {
+          output += closeStack.pop();
+        }
+        i += closeTagMatch[0].length;
+        continue;
+      }
+
+      // <#RRGGBB> or <color:#RRGGBB>
+      const mmHexMatch = remaining.match(/^<(?:color:|colour:)?#([0-9a-fA-F]{6})>/i);
+      if (mmHexMatch) {
+        const hex = '#' + mmHexMatch[1];
+        closeAll();
+        openSpan(`color:${hex}`);
+        i += mmHexMatch[0].length;
+        continue;
+      }
+
+      // Formatting tags: <b>, <i>, <u>, <s>, etc.
+      const mmFormatMatch = remaining.match(/^<(b|bold|i|italic|em|u|underlined|s|strikethrough|st|obf|obfuscated|reset|r)>/i);
+      if (mmFormatMatch) {
+        const fTag = mmFormatMatch[1].toLowerCase();
+        if (fTag === 'b' || fTag === 'bold') {
+          openTag('strong');
+        } else if (fTag === 'i' || fTag === 'italic' || fTag === 'em') {
+          openTag('em');
+        } else if (fTag === 'u' || fTag === 'underlined') {
+          openTag('u');
+        } else if (fTag === 's' || fTag === 'strikethrough' || fTag === 'st') {
+          openTag('del');
+        } else if (fTag === 'obf' || fTag === 'obfuscated') {
+          output += '<span class="mc-obfuscated">';
+          closeStack.push('</span>');
+        } else if (fTag === 'reset' || fTag === 'r') {
+          closeAll();
+        }
+        i += mmFormatMatch[0].length;
+        continue;
+      }
+
+      // Named color tags: <red>, <color:red>, etc.
+      const mmNamedColorMatch = remaining.match(/^<(?:color:|colour:)?([a-z_]+)>/i);
+      if (mmNamedColorMatch && NAMED_COLORS[mmNamedColorMatch[1].toLowerCase()]) {
+        const color = NAMED_COLORS[mmNamedColorMatch[1].toLowerCase()];
+        closeAll();
+        openSpan(`color:${color}`);
+        i += mmNamedColorMatch[0].length;
+        continue;
+      }
+    }
+
+    // Normal character -> escape HTML
     output += escapeHtml(ch);
+    i++;
   }
 
-  while (closeStack.length) output += closeStack.pop();
+  closeAll();
   return output;
 }
 
@@ -508,7 +767,11 @@ function appendLogItem(log, targetActionId = currentAction) {
   // Details
   const description = document.createElement('div');
   description.className = 'log-details';
-  description.textContent = log.details || 'Sin descripción registrada.';
+  if (log.details) {
+    description.innerHTML = translateColorCodesSafe(log.details);
+  } else {
+    description.textContent = 'Sin descripción registrada.';
+  }
   main.appendChild(description);
 
   // Facts
@@ -937,9 +1200,14 @@ function renderMetadataHtml(metaRaw) {
   } else if (item.enchantments && typeof item.enchantments === 'object') {
     enchantments = Object.entries(item.enchantments).map(([key, value]) => `${key}: ${value}`);
   }
-  if (enchantments.length) html += section('Enchantments', `<ul>${enchantments.map(value => `<li>${escapeHtml(value)}</li>`).join('')}</ul>`);
+  if (enchantments.length) html += section('Enchantments', `<ul>${enchantments.map(value => `<li>${translateColorCodesSafe(String(value))}</li>`).join('')}</ul>`);
   if (Array.isArray(item.lore) && item.lore.length) {
-    html += section('Lore', `<div class="metadata-lore">${item.lore.map(value => translateColorCodesSafe(String(value))).join('\n')}</div>`);
+    const renderedLore = item.lore.map(value => {
+      const formatted = translateColorCodesSafe(String(value));
+      const textOnly = formatted.replace(/<[^>]+>/g, '').trim();
+      return `<div class="lore-line">${textOnly ? formatted : '&nbsp;'}</div>`;
+    }).join('');
+    html += section('Lore', `<div class="metadata-lore">${renderedLore}</div>`);
   }
   const excluded = new Set(['material', 'amount', 'count', 'type', 'serialized', 'dataVersion', 'v',
     'timestamp', 'eventTimestamp', 'origin', 'source', 'rolled_back', 'rolledBack', 'rollback', 'undone',
@@ -1209,3 +1477,59 @@ window.addEventListener('DOMContentLoaded', () => {
     await loadMetadata(wrapper, id);
   });
 });
+
+(function injectEditorCustomStyles() {
+  const css = `
+    .metadata-section {
+      margin-bottom: 1rem;
+    }
+    .metadata-section:last-child {
+      margin-bottom: 0;
+    }
+    .metadata-section h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ederus-primary);
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    .metadata-kv {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.35rem 1rem;
+      margin: 0;
+    }
+    .metadata-kv dt {
+      color: var(--ederus-text-muted);
+      font-weight: 500;
+    }
+    .metadata-kv dd {
+      margin: 0;
+      color: var(--ederus-text);
+      font-weight: 500;
+      font-family: var(--ederus-mono);
+    }
+    .metadata-lore {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--ederus-border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--ederus-mono);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      word-break: break-word;
+      color: #e2e8f0;
+    }
+    .lore-line {
+      min-height: 1.25em;
+    }
+    .mc-obfuscated {
+      filter: blur(0.8px);
+      user-select: none;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+})();
