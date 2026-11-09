@@ -9,9 +9,9 @@ package com.lucidaps.web;
 import com.google.gson.Gson;
 import com.lucidaps.commands.PcTpCommand;
 import com.lucidaps.db.DatabaseMariadb;
-import com.lucidaps.web.EditorWebServer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -24,158 +24,133 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-final class EditorTeleportHandler
-implements HttpHandler {
+final class EditorTeleportHandler implements HttpHandler {
     private final Predicate<String> authorized;
     private final BooleanSupplier connected;
     private final Lookup lookup;
     private final Issuer issuer;
-    private final Consumer<Exception> reportFailure;
+    private final Consumer<Throwable> reportFailure;
     private final long timeoutMillis;
     private final Gson gson = new Gson();
 
-    EditorTeleportHandler(Predicate<String> predicate, BooleanSupplier booleanSupplier, Lookup lookup, Issuer issuer, Consumer<Exception> consumer) {
-        this(predicate, booleanSupplier, lookup, issuer, consumer, 2000L);
+    EditorTeleportHandler(Predicate<String> predicate, BooleanSupplier booleanSupplier, Lookup lookup, Issuer issuer, Consumer<Throwable> consumer) {
+        this(predicate, booleanSupplier, lookup, issuer, consumer, 5000L);
     }
 
-    EditorTeleportHandler(Predicate<String> predicate, BooleanSupplier booleanSupplier, Lookup lookup, Issuer issuer, Consumer<Exception> consumer, long l) {
+    EditorTeleportHandler(Predicate<String> predicate, BooleanSupplier booleanSupplier, Lookup lookup, Issuer issuer, Consumer<Throwable> consumer, long timeoutMillis) {
         this.authorized = predicate;
         this.connected = booleanSupplier;
         this.lookup = lookup;
         this.issuer = issuer;
         this.reportFailure = consumer;
-        this.timeoutMillis = l;
+        this.timeoutMillis = timeoutMillis;
     }
 
-    /*
-     * Enabled aggressive block sorting
-     * Enabled unnecessary exception pruning
-     * Enabled aggressive exception aggregation
-     */
     @Override
-    public void handle(HttpExchange httpExchange) {
-        int n;
-        Map<String, String> map;
-        HttpExchange httpExchange2;
-        block34: {
-            httpExchange2 = httpExchange;
-            httpExchange.getResponseHeaders().set("Cache-Control", "no-store");
-            if (!"POST".equalsIgnoreCase(httpExchange.getRequestMethod())) {
-                httpExchange.getResponseHeaders().set("Allow", "POST");
-                httpExchange.sendResponseHeaders(405, -1L);
-                if (httpExchange2 == null) return;
-                httpExchange2.close();
-                return;
-            }
-            map = EditorWebServer.queryToMap(httpExchange.getRequestURI().getRawQuery());
-            if (!this.authorized.test(map.get("token"))) {
-                httpExchange.sendResponseHeaders(403, -1L);
-                if (httpExchange2 == null) return;
-                httpExchange2.close();
-                return;
-            }
-            try {
-                n = Integer.parseInt(map.getOrDefault("id", ""));
-                if (n <= 0) {
-                    throw new NumberFormatException();
-                }
-            }
-            catch (NumberFormatException numberFormatException) {
-                httpExchange.sendResponseHeaders(400, -1L);
-                if (httpExchange2 == null) return;
-                httpExchange2.close();
-                return;
-            }
-            if (this.connected.getAsBoolean()) break block34;
-            EditorTeleportHandler.unavailable(httpExchange);
-            if (httpExchange2 == null) return;
-            httpExchange2.close();
+    public void handle(HttpExchange httpExchange) throws IOException {
+        httpExchange.getResponseHeaders().set("Cache-Control", "no-store");
+        if (!"POST".equalsIgnoreCase(httpExchange.getRequestMethod())) {
+            httpExchange.getResponseHeaders().set("Allow", "POST");
+            httpExchange.sendResponseHeaders(405, -1L);
+            httpExchange.close();
             return;
         }
-        try {
-            PcTpCommand.IssuedCommand issuedCommand;
-            CompletableFuture<PcTpCommand.IssuedCommand> completableFuture;
-            block37: {
-                block36: {
-                    DatabaseMariadb.EditorTeleportLocation editorTeleportLocation;
-                    block35: {
-                        completableFuture = null;
-                        editorTeleportLocation = this.lookup.find(n);
-                        if (editorTeleportLocation != null) break block35;
-                        httpExchange.sendResponseHeaders(404, -1L);
-                        if (httpExchange2 == null) return;
-                        httpExchange2.close();
-                        return;
-                    }
-                    completableFuture = this.issuer.issue(editorTeleportLocation);
-                    issuedCommand = completableFuture.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
-                    if (issuedCommand != null) break block36;
-                    httpExchange.sendResponseHeaders(404, -1L);
-                    if (httpExchange2 == null) return;
-                    httpExchange2.close();
-                    return;
-                }
-                if (this.authorized.test(map.get("token"))) break block37;
-                httpExchange.sendResponseHeaders(403, -1L);
-                if (httpExchange2 == null) return;
-                httpExchange2.close();
-                return;
-            }
-            try {
-                byte[] byArray = this.gson.toJson((Object)issuedCommand).getBytes(StandardCharsets.UTF_8);
-                httpExchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-                httpExchange.sendResponseHeaders(200, byArray.length);
-                try (OutputStream outputStream = httpExchange.getResponseBody();){
-                    outputStream.write(byArray);
-                    return;
-                }
-            }
-            catch (SQLException sQLException) {
-                int n2;
-                this.reportFailure.accept(sQLException);
-                int n3 = n2 = this.connected.getAsBoolean() ? EditorWebServer.databaseFailureStatus(sQLException) : 503;
-                if (n2 == 503) {
-                    EditorTeleportHandler.unavailable(httpExchange);
-                    return;
-                }
-                httpExchange.sendResponseHeaders(n2, -1L);
-                return;
-            }
-            catch (ExecutionException | TimeoutException exception) {
-                if (completableFuture != null) {
-                    completableFuture.cancel(false);
-                }
-                this.reportFailure.accept(exception);
-                EditorTeleportHandler.unavailable(httpExchange);
-                return;
-            }
-            catch (InterruptedException interruptedException) {
-                if (completableFuture != null) {
-                    completableFuture.cancel(false);
-                }
-                Thread.currentThread().interrupt();
-                EditorTeleportHandler.unavailable(httpExchange);
-                return;
-            }
-            catch (RuntimeException runtimeException) {
-                if (completableFuture != null) {
-                    completableFuture.cancel(false);
-                }
-                this.reportFailure.accept(runtimeException);
-                EditorTeleportHandler.unavailable(httpExchange);
-                return;
-            }
+
+        Map<String, String> map = EditorWebServer.queryToMap(httpExchange.getRequestURI().getRawQuery());
+        if (!this.authorized.test(map.get("token"))) {
+            httpExchange.sendResponseHeaders(403, -1L);
+            httpExchange.close();
+            return;
         }
-        finally {
-            if (httpExchange2 != null) {
-                httpExchange2.close();
+
+        int id;
+        try {
+            id = Integer.parseInt(map.getOrDefault("id", ""));
+            if (id <= 0) {
+                throw new NumberFormatException();
             }
+        } catch (NumberFormatException numberFormatException) {
+            httpExchange.sendResponseHeaders(400, -1L);
+            httpExchange.close();
+            return;
+        }
+
+        if (!this.connected.getAsBoolean()) {
+            EditorTeleportHandler.unavailable(httpExchange);
+            httpExchange.close();
+            return;
+        }
+
+        CompletableFuture<PcTpCommand.IssuedCommand> completableFuture = null;
+        try {
+            DatabaseMariadb.EditorTeleportLocation editorTeleportLocation = this.lookup.find(id);
+            if (editorTeleportLocation == null) {
+                httpExchange.sendResponseHeaders(404, -1L);
+                return;
+            }
+
+            completableFuture = this.issuer.issue(editorTeleportLocation);
+            PcTpCommand.IssuedCommand issuedCommand = completableFuture.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
+            if (issuedCommand == null) {
+                httpExchange.sendResponseHeaders(404, -1L);
+                return;
+            }
+
+            if (!this.authorized.test(map.get("token"))) {
+                httpExchange.sendResponseHeaders(403, -1L);
+                return;
+            }
+
+            byte[] responseBytes = this.gson.toJson(issuedCommand).getBytes(StandardCharsets.UTF_8);
+            httpExchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+            httpExchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream outputStream = httpExchange.getResponseBody()) {
+                outputStream.write(responseBytes);
+            }
+        } catch (SQLException sQLException) {
+            this.reportFailure.accept(sQLException);
+            int status = this.connected.getAsBoolean() ? EditorWebServer.databaseFailureStatus(sQLException) : 503;
+            if (status == 503) {
+                EditorTeleportHandler.unavailable(httpExchange);
+            } else {
+                httpExchange.sendResponseHeaders(status, -1L);
+            }
+        } catch (ExecutionException exception) {
+            if (completableFuture != null) {
+                completableFuture.cancel(false);
+            }
+            Throwable cause = exception.getCause() != null ? exception.getCause() : exception;
+            this.reportFailure.accept(cause);
+            EditorTeleportHandler.unavailable(httpExchange);
+        } catch (TimeoutException exception) {
+            if (completableFuture != null) {
+                completableFuture.cancel(false);
+            }
+            this.reportFailure.accept(exception);
+            EditorTeleportHandler.unavailable(httpExchange);
+        } catch (InterruptedException interruptedException) {
+            if (completableFuture != null) {
+                completableFuture.cancel(false);
+            }
+            Thread.currentThread().interrupt();
+            EditorTeleportHandler.unavailable(httpExchange);
+        } catch (Throwable throwable) {
+            if (completableFuture != null) {
+                completableFuture.cancel(false);
+            }
+            this.reportFailure.accept(throwable);
+            EditorTeleportHandler.unavailable(httpExchange);
+        } finally {
+            httpExchange.close();
         }
     }
 
     private static void unavailable(HttpExchange httpExchange) {
-        httpExchange.getResponseHeaders().set("Retry-After", "10");
-        httpExchange.sendResponseHeaders(503, -1L);
+        try {
+            httpExchange.getResponseHeaders().set("Retry-After", "10");
+            httpExchange.sendResponseHeaders(503, -1L);
+        } catch (IOException ignored) {
+        }
     }
 
     static interface Lookup {
@@ -186,4 +161,3 @@ implements HttpHandler {
         public CompletableFuture<PcTpCommand.IssuedCommand> issue(DatabaseMariadb.EditorTeleportLocation var1);
     }
 }
-

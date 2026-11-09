@@ -156,7 +156,7 @@ public class EditorWebServer {
         this.server = createdServer;
         this.server.createContext("/api/logs", new LogsHandler());
         this.server.createContext("/editor", new EditorHandler());
-        EditorTeleportHandler editorTeleportHandler = new EditorTeleportHandler(this.accessTokens::isValid, () -> databaseMariadb.getHealthState() == DatabaseMariadb.HealthState.CONNECTED, n -> databaseMariadb.findEditorTeleportLocation(n, this.disabledActions), this::issueTeleportCommand, exception -> protectCore.getLogger().log(Level.WARNING, "Could not prepare editor teleport command", (Throwable)exception));
+        EditorTeleportHandler editorTeleportHandler = new EditorTeleportHandler(this.accessTokens::isValid, () -> databaseMariadb.getHealthState() == DatabaseMariadb.HealthState.CONNECTED, n -> databaseMariadb.findEditorTeleportLocation(n, this.disabledActions), this::issueTeleportCommand, exception -> protectCore.getLogger().log(Level.WARNING, "Could not prepare editor teleport command", exception), 5000L);
         this.server.createContext("/api/teleportCommand", httpExchange -> {
             this.securityHeaders(httpExchange);
             editorTeleportHandler.handle(httpExchange);
@@ -308,13 +308,13 @@ public class EditorWebServer {
                     World world = PcTpCommand.resolveWorld(editorTeleportLocation.world());
                     completableFuture.complete(world == null ? null : PcTpCommand.issueCommand(world.getKey().toString(), editorTeleportLocation.x(), editorTeleportLocation.y(), editorTeleportLocation.z()));
                 }
-                catch (RuntimeException runtimeException) {
-                    completableFuture.completeExceptionally(runtimeException);
+                catch (Throwable throwable) {
+                    completableFuture.completeExceptionally(throwable);
                 }
             });
         }
-        catch (RuntimeException runtimeException) {
-            completableFuture.completeExceptionally(runtimeException);
+        catch (Throwable throwable) {
+            completableFuture.completeExceptionally(throwable);
         }
         return completableFuture;
     }
