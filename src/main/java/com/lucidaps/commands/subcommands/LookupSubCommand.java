@@ -6,10 +6,8 @@ import com.lucidaps.commands.SubCommand;
 import com.lucidaps.db.ActionLog;
 import com.lucidaps.db.DatabaseMariadb;
 import com.lucidaps.logging.ActionType;
+import com.lucidaps.utilities.PlayerResolver;
 import com.lucidaps.utilities.TimeUtil;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -347,21 +345,13 @@ public class LookupSubCommand implements SubCommand {
                 return true;
             }
 
-            String userUUID = null;
-            if (finalUser != null && !finalUser.isBlank()) {
-                UUID uuid = resolvePlayerUUID(finalUser);
-                if (uuid == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown player: " + finalUser);
-                    return true;
-                }
-                userUUID = uuid.toString();
-            }
-
-            this.databaseMariadb.searchLogsPagedByAreaAsync(
-                player.getWorld().getName(),
-                player.getLocation().getBlockX(),
-                player.getLocation().getBlockY(),
-                player.getLocation().getBlockZ(),
+            // La posición se fija ahora: si la resolución del nombre va a la base de datos, el jugador puede moverse.
+            final String world = player.getWorld().getName();
+            final int bx = player.getLocation().getBlockX();
+            final int by = player.getLocation().getBlockY();
+            final int bz = player.getLocation().getBlockZ();
+            Consumer<String> runAreaSearch = userUUID -> this.databaseMariadb.searchLogsPagedByAreaAsync(
+                world, bx, by, bz,
                 finalRadius,
                 minTimestamp / 1000L,
                 maxTimestamp,
@@ -377,34 +367,46 @@ public class LookupSubCommand implements SubCommand {
                 excludeMaterials,
                 areaResultConsumer
             );
+
+            if (finalUser == null || finalUser.isBlank()) {
+                runAreaSearch.accept(null);
+                return true;
+            }
+            PlayerResolver.resolveAsync(this.plugin, this.databaseMariadb, finalUser, uuid -> {
+                if (uuid == null) {
+                    sender.sendMessage(ChatColor.RED + "Unknown player: " + finalUser);
+                    return;
+                }
+                runAreaSearch.accept(uuid.toString());
+            });
         } else {
             if (finalUser == null || finalUser.isBlank()) {
                 sender.sendMessage(ChatColor.RED + "From console, specify either user:<name> or radius:<blocks> for area lookup.");
                 return true;
             }
 
-            UUID uuid = resolvePlayerUUID(finalUser);
-            if (uuid == null) {
-                sender.sendMessage(ChatColor.RED + "Unknown player: " + finalUser);
-                return true;
-            }
-
-            this.databaseMariadb.searchLogsWindowedByUserAsync(
-                uuid.toString(),
-                minTimestamp / 1000L,
-                maxTimestamp,
-                null, null, null, null, null,
-                finalAction,
-                disabledActions,
-                false,
-                hideWe,
-                this.PAGE_SIZE,
-                finalPage,
-                windowPages,
-                includeMaterials,
-                excludeMaterials,
-                windowedResultConsumer
-            );
+            PlayerResolver.resolveAsync(this.plugin, this.databaseMariadb, finalUser, uuid -> {
+                if (uuid == null) {
+                    sender.sendMessage(ChatColor.RED + "Unknown player: " + finalUser);
+                    return;
+                }
+                this.databaseMariadb.searchLogsWindowedByUserAsync(
+                    uuid.toString(),
+                    minTimestamp / 1000L,
+                    maxTimestamp,
+                    null, null, null, null, null,
+                    finalAction,
+                    disabledActions,
+                    false,
+                    hideWe,
+                    this.PAGE_SIZE,
+                    finalPage,
+                    windowPages,
+                    includeMaterials,
+                    excludeMaterials,
+                    windowedResultConsumer
+                );
+            });
         }
 
         return true;
@@ -572,56 +574,6 @@ public class LookupSubCommand implements SubCommand {
                 dest.add(tagPrefix + lower);
             }
         }
-    }
-
-    private UUID resolvePlayerUUID(String input) {
-        if (input == null || input.isBlank()) {
-            return null;
-        }
-        String trimmed = input.trim();
-        try {
-            return UUID.fromString(trimmed);
-        } catch (IllegalArgumentException ignored) {}
-
-        Player player = Bukkit.getPlayerExact(trimmed);
-        if (player != null) {
-            return player.getUniqueId();
-        }
-
-        OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(trimmed);
-        if (cached != null) {
-            return cached.getUniqueId();
-        }
-
-        if (trimmed.startsWith(".")) {
-            OfflinePlayer alt = Bukkit.getOfflinePlayerIfCached(trimmed.substring(1));
-            if (alt != null) return alt.getUniqueId();
-        } else {
-            OfflinePlayer alt = Bukkit.getOfflinePlayerIfCached("." + trimmed);
-            if (alt != null) return alt.getUniqueId();
-        }
-
-        OfflinePlayer offline = Bukkit.getOfflinePlayer(trimmed);
-        if (offline != null && (offline.hasPlayedBefore() || offline.isOnline())) {
-            return offline.getUniqueId();
-        }
-
-        try (Connection connection = this.databaseMariadb.getDataSource().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement("SELECT playerUUID FROM protectcore_player_actions WHERE playerName = ? OR playerName = ? OR LOWER(playerName) = LOWER(?) LIMIT 1")) {
-            preparedStatement.setString(1, trimmed);
-            preparedStatement.setString(2, trimmed.startsWith(".") ? trimmed.substring(1) : "." + trimmed);
-            preparedStatement.setString(3, trimmed);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    String str = resultSet.getString(1);
-                    if (str != null && !str.isBlank()) {
-                        return UUID.fromString(str);
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        return offline != null ? offline.getUniqueId() : null;
     }
 
     private void suggestMaterialsCSV(String input, List<String> dest, String tagPrefix) {
