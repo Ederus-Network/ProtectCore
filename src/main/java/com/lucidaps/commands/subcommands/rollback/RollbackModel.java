@@ -10,6 +10,7 @@
  */
 package com.lucidaps.commands.subcommands.rollback;
 
+import com.lucidaps.utilities.PlayerResolver;
 import com.lucidaps.ProtectCore;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -164,11 +165,15 @@ public class RollbackModel {
                 catch (IllegalArgumentException illegalArgumentException) {
                     // empty catch block
                 }
-                Object object = offlinePlayer = uUID2 != null ? Bukkit.getOfflinePlayer((UUID)uUID2) : Bukkit.getPlayerExact((String)string3);
-                if (offlinePlayer == null) {
-                    offlinePlayer = Bukkit.getOfflinePlayer((String)string3);
+                // Sin Bukkit.getOfflinePlayer(String): con un nombre que no está en caché hace una petición web a
+                // Mojang en el hilo principal. Memoria primero y, si no, el historial por índice (idx_player_name,
+                // tope de 3 s). Así también se encuentran jugadores Bedrock (".nombre") que ya no están en caché.
+                UUID resolved = uUID2 != null ? uUID2 : PlayerResolver.resolveCached(string3);
+                if (resolved == null) {
+                    resolved = PlayerResolver.resolveFromDatabase(protectCore.getDatabaseMariadb(), string3);
                 }
-                if (offlinePlayer == null || !offlinePlayer.hasPlayedBefore() && !offlinePlayer.isOnline()) {
+                offlinePlayer = resolved != null ? Bukkit.getOfflinePlayer(resolved) : null;
+                if (offlinePlayer == null || uUID2 != null && !offlinePlayer.hasPlayedBefore() && !offlinePlayer.isOnline()) {
                     throw new IllegalArgumentException(protectCore.getLang().get("messages.rollback.invalidPlayer", Map.of("player", string3)));
                 }
                 uUID = offlinePlayer.getUniqueId();

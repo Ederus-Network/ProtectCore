@@ -3,6 +3,7 @@
  */
 package com.lucidaps.web;
 
+import com.lucidaps.utilities.PlayerResolver;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonPrimitive;
@@ -222,76 +223,9 @@ public class EditorWebServer {
     }
 
     public UUID resolvePlayerUUID(String input) {
-        if (input == null || input.isBlank()) {
-            return null;
-        }
-        String trimmed = input.trim();
-        // 1. Try UUID directly
-        try {
-            return UUID.fromString(trimmed);
-        } catch (IllegalArgumentException ignored) {}
-
-        // 2. Try online player exact
-        Player onlinePlayer = Bukkit.getPlayerExact(trimmed);
-        if (onlinePlayer != null) {
-            return onlinePlayer.getUniqueId();
-        }
-
-        // 3. Try cached offline player
-        OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(trimmed);
-        if (cached != null && (cached.isOnline() || cached.hasPlayedBefore())) {
-            return cached.getUniqueId();
-        }
-
-        // 4. Handle Bedrock dot prefix variations
-        if (trimmed.startsWith(".") && trimmed.length() > 1) {
-            OfflinePlayer offNoDot = Bukkit.getOfflinePlayerIfCached(trimmed.substring(1));
-            if (offNoDot != null && (offNoDot.isOnline() || offNoDot.hasPlayedBefore())) {
-                return offNoDot.getUniqueId();
-            }
-        } else if (!trimmed.startsWith(".")) {
-            OfflinePlayer offWithDot = Bukkit.getOfflinePlayerIfCached("." + trimmed);
-            if (offWithDot != null && (offWithDot.isOnline() || offWithDot.hasPlayedBefore())) {
-                return offWithDot.getUniqueId();
-            }
-        }
-
-        // 5. Fallback: Query MariaDB directly from protectcore_player_actions!
-        // Guarantees Bedrock players and offline players are found even if Bukkit UserCache doesn't have them
-        try (Connection conn = this.databaseMariadb.openEditorConnection()) {
-            String sql = "SELECT playerUUID FROM protectcore_player_actions WHERE LOWER(playerName) = LOWER(?) LIMIT 1";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, trimmed);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        String uuidStr = rs.getString("playerUUID");
-                        if (uuidStr != null && !uuidStr.isBlank()) {
-                            try {
-                                return UUID.fromString(uuidStr);
-                            } catch (IllegalArgumentException ignored) {}
-                        }
-                    }
-                }
-            }
-            String altName = trimmed.startsWith(".") ? trimmed.substring(1) : ("." + trimmed);
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, altName);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        String uuidStr = rs.getString("playerUUID");
-                        if (uuidStr != null && !uuidStr.isBlank()) {
-                            try {
-                                return UUID.fromString(uuidStr);
-                            } catch (IllegalArgumentException ignored) {}
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            this.plugin.getLogger().warning("Error querying playerUUID from DB for user " + trimmed + ": " + e.getMessage());
-        }
-
-        return null;
+        // Memoria primero; si no, consulta indexada (idx_player_name). Este método corre en hilos del servidor web.
+        UUID cached = PlayerResolver.resolveCached(input);
+        return cached != null ? cached : PlayerResolver.resolveFromDatabase(this.databaseMariadb, input);
     }
 
     private CompletableFuture<PcTpCommand.IssuedCommand> issueTeleportCommand(DatabaseMariadb.EditorTeleportLocation editorTeleportLocation) {
